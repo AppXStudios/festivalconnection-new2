@@ -84,7 +84,7 @@ struct SettingsView: View {
                             // Account section
                             sectionHeader("ACCOUNT")
                             VStack(spacing: 0) {
-                                settingsNavRow(icon: "dollarsign.circle.fill", label: "Wallet", detail: "$0.00", iconColor: FestivalTheme.iconOrange) {
+                                settingsNavRow(icon: "dollarsign.circle.fill", label: "Wallet", detail: String(format: "$%.2f", WalletManager.shared.balanceUSD), iconColor: FestivalTheme.iconOrange) {
                                     WalletHomeView()
                                 }
                                 Divider().background(FestivalTheme.surfaceMedium)

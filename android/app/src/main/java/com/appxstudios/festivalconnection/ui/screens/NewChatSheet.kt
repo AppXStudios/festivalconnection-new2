@@ -32,21 +32,33 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+import com.appxstudios.festivalconnection.models.PeerInfo
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
 import com.appxstudios.festivalconnection.ui.theme.*
 import com.appxstudios.festivalconnection.ui.theme.GradientIcon
-
-data class DemoPeer(
-    val peerKey: String,
-    val displayName: String
-)
 
 @Composable
 fun NewChatSheet(
     onDismiss: () -> Unit,
     onPeerSelected: (String) -> Unit
 ) {
-    val peers = remember { mutableStateListOf<DemoPeer>() }
+    val context = LocalContext.current
+    val peers = remember {
+        val prefs = context.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE)
+        val peerKeys = prefs.getStringSet("connected_peers", emptySet()) ?: emptySet()
+        mutableStateListOf<PeerInfo>().apply {
+            addAll(peerKeys.map { key ->
+                val handle = prefs.getString("peer_handle_$key", null) ?: key.take(8).lowercase()
+                PeerInfo(
+                    publicKeyHex = key,
+                    displayName = handle,
+                    handle = handle
+                )
+            })
+        }
+    }
     var searchText by remember { mutableStateOf("") }
 
     val filteredPeers = remember(searchText, peers.size) {
@@ -150,7 +162,7 @@ fun NewChatSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                onPeerSelected(peer.peerKey)
+                                onPeerSelected(peer.publicKeyHex)
                                 onDismiss()
                             }
                             .padding(horizontal = 16.dp, vertical = 10.dp)

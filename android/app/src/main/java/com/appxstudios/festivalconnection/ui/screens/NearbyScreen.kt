@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,6 +20,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
 import com.appxstudios.festivalconnection.models.ChannelMessage
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
 import com.appxstudios.festivalconnection.ui.theme.*
@@ -26,7 +28,27 @@ import com.appxstudios.festivalconnection.ui.theme.*
 @Composable
 fun NearbyScreen() {
     var feedMessages by remember { mutableStateOf(listOf<ChannelMessage>()) }
-    val isConnected by remember { mutableStateOf(false) }
+    val connectedRelayCount by NostrRelayManager.connectedRelayCount.collectAsState()
+    val isConnected = connectedRelayCount > 0
+
+    // Collect incoming Nostr events into feed messages
+    DisposableEffect(Unit) {
+        val previousHandler = NostrRelayManager.onEvent
+        NostrRelayManager.onEvent = { event ->
+            val msg = ChannelMessage(
+                id = event.id,
+                channelId = "",
+                senderPublicKeyHex = event.pubkey,
+                senderDisplayName = "Peer ${event.pubkey.take(4).uppercase()}",
+                content = event.content,
+                timestamp = event.createdAt * 1000L
+            )
+            feedMessages = (listOf(msg) + feedMessages).take(100)
+        }
+        onDispose {
+            NostrRelayManager.onEvent = previousHandler
+        }
+    }
 
     Column(
         modifier = Modifier

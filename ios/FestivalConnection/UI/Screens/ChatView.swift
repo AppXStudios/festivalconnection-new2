@@ -91,14 +91,28 @@ struct ChatView: View {
     }
 
     private func sendMessage() {
-        guard !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        let trimmed = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
         let msg = ChatMessage(
             senderKey: IdentityManager.shared.publicKeyHex,
             recipientKey: peerKey,
-            content: messageText,
+            content: trimmed,
             isIncoming: false
         )
         appState.addMessage(msg, forPeer: peerKey)
+
+        // Send via NIP-04 encrypted DM over Nostr
+        if let dmEvent = NostrDM.createDirectMessage(to: peerKey, content: trimmed) {
+            NostrRelayManager.shared.publishEvent(dmEvent)
+        }
+
+        // Send via mesh (BLE + Multipeer) through PacketProcessor
+        PacketProcessor.shared.sendMessage(
+            content: trimmed,
+            senderID: IdentityManager.shared.peerID(),
+            recipientID: Data(peerKey.prefix(16).compactMap { c -> UInt8? in UInt8(String(c), radix: 16) })
+        )
+
         messageText = ""
     }
 
@@ -163,7 +177,18 @@ struct ChatView: View {
             }
             if !msg.paymentConfirmed {
                 Button("Pay Now") {
-                    appState.setPaymentConfirmed(messageId: msg.id, forPeer: peerKey)
+                    if let invoice = msg.paymentInvoice {
+                        Task {
+                            do {
+                                try await WalletManager.shared.sendPayment(invoice: invoice, amountSat: msg.paymentAmount ?? 0)
+                                await MainActor.run {
+                                    appState.setPaymentConfirmed(messageId: msg.id, forPeer: peerKey)
+                                }
+                            } catch {
+                                // Payment failed — button stays visible for retry
+                            }
+                        }
+                    }
                 }
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.white)

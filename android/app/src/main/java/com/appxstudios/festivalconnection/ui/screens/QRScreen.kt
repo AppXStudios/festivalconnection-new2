@@ -36,6 +36,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.appxstudios.festivalconnection.mesh.ble.BLEMeshService
+import com.appxstudios.festivalconnection.protocol.CrowdSyncBinaryProtocol
+import com.appxstudios.festivalconnection.protocol.CrowdSyncPacket
+import com.appxstudios.festivalconnection.protocol.MessageType
+import com.appxstudios.festivalconnection.security.NostrIdentity
 import com.appxstudios.festivalconnection.ui.theme.*
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -94,9 +99,15 @@ private fun MyQRTab() {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE)
     val defaultId = prefs.getString("fc_handle", "") ?: ""
-    val nickname = prefs.getString("fc_nickname", if (defaultId.isNotEmpty()) "Peer ${defaultId.take(4).uppercase()}" else "") ?: ""
-    val rawHandle = if (defaultId.isNotEmpty()) defaultId else ""
-    val handle = if (rawHandle.isNotEmpty()) "@$rawHandle" else ""
+    // Use the real Nostr public key if available, fall back to stored handle
+    val publicKey = if (NostrIdentity.isInitialized && NostrIdentity.publicKeyHex.isNotEmpty()) {
+        NostrIdentity.publicKeyHex
+    } else {
+        defaultId
+    }
+    val nickname = prefs.getString("fc_nickname", if (publicKey.isNotEmpty()) "Peer ${publicKey.take(4).uppercase()}" else "") ?: ""
+    val rawHandle = publicKey
+    val handle = if (rawHandle.isNotEmpty()) "@${rawHandle.take(16)}" else ""
     val handleForUrl = rawHandle
 
     Column(
@@ -156,6 +167,25 @@ private fun ScanTab() {
                                 .putStringSet("connected_peers", updatedPeers)
                                 .putString("peer_handle_$peerKey", peerHandle)
                                 .apply()
+
+                            // Broadcast an announce packet so the scanned peer discovers us
+                            try {
+                                val myNickname = prefs.getString("fc_nickname", "") ?: ""
+                                val myPubKey = if (NostrIdentity.isInitialized) NostrIdentity.publicKeyHex else ""
+                                val senderIdBytes = (NostrIdentity.hexToBytes(myPubKey.take(16))
+                                    ?: ByteArray(8)).copyOf(8)
+                                val announcePacket = CrowdSyncPacket(
+                                    type = MessageType.ANNOUNCE.value,
+                                    senderID = senderIdBytes,
+                                    payload = myNickname.toByteArray(Charsets.UTF_8),
+                                    ttl = 3
+                                )
+                                val encoded = CrowdSyncBinaryProtocol.encode(announcePacket)
+                                if (encoded != null) {
+                                    val bleMesh = BLEMeshService(context)
+                                    bleMesh.broadcast(encoded)
+                                }
+                            } catch (_: Exception) { /* best-effort broadcast */ }
                         }
                     }
                 }

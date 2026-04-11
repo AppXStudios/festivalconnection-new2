@@ -13,7 +13,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.collectAsState
 import com.appxstudios.festivalconnection.models.WalletTransaction
+import com.appxstudios.festivalconnection.services.WalletManager
 import com.appxstudios.festivalconnection.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -25,10 +27,15 @@ fun WalletHomeScreen(
     onAddFunds: () -> Unit = {},
     onHistory: () -> Unit = {}
 ) {
-    val balanceSat by remember { mutableStateOf(0L) }
-    val balanceUSD by remember { mutableStateOf(0.0) }
-    val transactions by remember { mutableStateOf(listOf<WalletTransaction>()) }
-    val isConnected by remember { mutableStateOf(false) }
+    val balanceSat by WalletManager.balanceSat.collectAsState()
+    val balanceUSD by WalletManager.balanceUSD.collectAsState()
+    val transactions by WalletManager.transactions.collectAsState()
+    val isConnected by WalletManager.isConnected.collectAsState()
+
+    LaunchedEffect(Unit) {
+        WalletManager.refreshBalance()
+        WalletManager.refreshTransactions()
+    }
 
     Column(
         modifier = Modifier

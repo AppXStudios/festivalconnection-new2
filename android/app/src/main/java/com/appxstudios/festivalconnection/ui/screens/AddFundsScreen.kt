@@ -9,24 +9,35 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.appxstudios.festivalconnection.services.WalletManager
 import com.appxstudios.festivalconnection.ui.theme.*
 import com.appxstudios.festivalconnection.ui.theme.GradientIcon
+import kotlinx.coroutines.launch
 
 @Composable
 fun AddFundsScreen(
     onCancel: () -> Unit = {},
     onBuyWithCard: () -> Unit = {},
-    onSendToWallet: () -> Unit = {}
+    onSendToWallet: () -> Unit = {},
+    onInvoiceCreated: (String) -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var receiveInvoice by remember { mutableStateOf<String?>(null) }
+    var invoiceError by remember { mutableStateOf<String?>(null) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -59,7 +70,11 @@ fun AddFundsScreen(
             icon = Icons.Filled.CreditCard,
             title = "Buy with Card",
             subtitle = "Buy instantly with Ramp",
-            onClick = onBuyWithCard,
+            onClick = {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://ramp.network/buy"))
+                context.startActivity(intent)
+                onBuyWithCard()
+            },
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
@@ -70,7 +85,21 @@ fun AddFundsScreen(
             icon = Icons.Filled.ArrowDownward,
             title = "Send to this wallet",
             subtitle = "From any compatible wallet",
-            onClick = onSendToWallet,
+            onClick = {
+                coroutineScope.launch {
+                    try {
+                        val invoice = WalletManager.createInvoice(
+                            amountSat = 0L,
+                            description = "Add funds"
+                        )
+                        receiveInvoice = invoice
+                        onInvoiceCreated(invoice)
+                    } catch (e: Exception) {
+                        invoiceError = e.message
+                    }
+                }
+                onSendToWallet()
+            },
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 

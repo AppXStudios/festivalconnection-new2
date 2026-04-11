@@ -25,8 +25,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.appxstudios.festivalconnection.models.ChatMessage
+import com.appxstudios.festivalconnection.mesh.nostr.NostrDM
+import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
+import com.appxstudios.festivalconnection.security.NostrIdentity
+import com.appxstudios.festivalconnection.protocol.CrowdSyncBinaryProtocol
+import com.appxstudios.festivalconnection.protocol.CrowdSyncPacket
+import com.appxstudios.festivalconnection.protocol.MessageType
+import com.appxstudios.festivalconnection.services.WalletManager
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
 import com.appxstudios.festivalconnection.ui.theme.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -98,7 +108,7 @@ fun ChatScreen(
                         val amount = paymentAmount.toLongOrNull()
                         if (amount != null && amount > 0) {
                             messages.add(ChatMessage(
-                                senderKey = "",
+                                senderKey = NostrIdentity.publicKeyHex,
                                 recipientKey = peerKey,
                                 content = "",
                                 isIncoming = false,
@@ -106,6 +116,12 @@ fun ChatScreen(
                                 paymentAmount = amount,
                                 paymentDescription = paymentDescription
                             ))
+
+                            // Send payment request via Nostr DM
+                            val reqText = "payment_request:$amount:${paymentDescription}"
+                            val dmEvent = NostrDM.createDirectMessage(peerKey, reqText)
+                            dmEvent?.let { NostrRelayManager.publishEvent(it) }
+
                             showPaymentDialog = false
                             paymentAmount = ""
                             paymentDescription = ""
@@ -142,13 +158,33 @@ fun ChatScreen(
                 onMessageTextChange = { messageText = it },
                 onSend = {
                     if (messageText.isNotBlank()) {
+                        val text = messageText.trim()
                         messages.add(ChatMessage(
-                            senderKey = "",
+                            senderKey = NostrIdentity.publicKeyHex,
                             recipientKey = peerKey,
-                            content = messageText.trim(),
+                            content = text,
                             isIncoming = false
                         ))
                         messageText = ""
+
+                        // Send via Nostr NIP-04 DM
+                        val dmEvent = NostrDM.createDirectMessage(peerKey, text)
+                        dmEvent?.let { NostrRelayManager.publishEvent(it) }
+
+                        // Send via mesh broadcast
+                        val senderBytes = NostrIdentity.hexToBytes(NostrIdentity.publicKeyHex)?.take(8)?.toByteArray() ?: ByteArray(8)
+                        val recipientBytes = NostrIdentity.hexToBytes(peerKey)?.take(8)?.toByteArray() ?: ByteArray(8)
+                        val meshPacket = CrowdSyncPacket(
+                            type = MessageType.MESSAGE.value,
+                            senderID = senderBytes,
+                            recipientID = recipientBytes,
+                            payload = text.toByteArray(Charsets.UTF_8)
+                        )
+                        CrowdSyncBinaryProtocol.encode(meshPacket)?.let { encoded ->
+                            com.appxstudios.festivalconnection.mesh.shared.PacketProcessor.receive(
+                                encoded, com.appxstudios.festivalconnection.mesh.shared.PacketProcessor.TransportType.BLE
+                            )
+                        }
                     }
                 },
                 onPayment = { showPaymentDialog = true }
@@ -301,7 +337,22 @@ private fun ReceivedMessageBubble(msg: ChatMessage) {
 }
 
 @Composable
-private fun PaymentRequestBubble(msg: ChatMessage, onPayNow: () -> Unit = {}) {
+private fun PaymentRequestBubble(
+    msg: ChatMessage,
+    onPayNow: () -> Unit = {
+        // Default: initiate payment via WalletManager
+        msg.paymentAmount?.let { amount ->
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val invoice = WalletManager.createInvoice(amount, msg.paymentDescription ?: "")
+                    WalletManager.sendPayment(invoice, amount)
+                } catch (e: Exception) {
+                    println("[Chat] Payment failed: ${e.message}")
+                }
+            }
+        }
+    }
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (!msg.isIncoming) Arrangement.End else Arrangement.Start

@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,16 +23,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.appxstudios.festivalconnection.services.PermissionsManager
 import com.appxstudios.festivalconnection.ui.theme.*
 
 @Composable
 fun PermissionsScreen(
     onGetStarted: () -> Unit
 ) {
-    var bluetoothGranted by remember { mutableStateOf(false) }
-    var locationGranted by remember { mutableStateOf(false) }
+    val pm = remember { PermissionsManager.getInstance() }
+    val bluetoothGranted by pm.bluetoothGranted.collectAsState()
+    val locationGranted by pm.locationGranted.collectAsState()
+    val notificationsGranted by pm.notificationGranted.collectAsState()
     var wifiGranted by remember { mutableStateOf(false) }
-    var notificationsGranted by remember { mutableStateOf(false) }
 
     val allGranted = bluetoothGranted && locationGranted && wifiGranted
 
@@ -52,10 +55,10 @@ fun PermissionsScreen(
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { results ->
-        bluetoothGranted = results.entries.any { it.key.contains("BLUETOOTH") && it.value }
-        locationGranted = results.entries.any { it.key.contains("LOCATION") && it.value }
+        // Let PermissionsManager re-check system state for bluetooth, location, notifications
+        pm.refreshAll()
+        // Wi-Fi is not tracked by PermissionsManager, so keep it local
         wifiGranted = results.entries.any { (it.key.contains("WIFI") || it.key.contains("LOCATION")) && it.value }
-        notificationsGranted = results.entries.any { it.key.contains("NOTIFICATION") && it.value }
     }
 
     LaunchedEffect(Unit) {

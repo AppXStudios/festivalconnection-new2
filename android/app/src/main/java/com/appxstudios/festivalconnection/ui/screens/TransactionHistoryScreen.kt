@@ -11,6 +11,9 @@ import androidx.compose.material.icons.filled.ArrowCircleUp
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.appxstudios.festivalconnection.models.WalletTransaction
+import com.appxstudios.festivalconnection.services.WalletManager
 import com.appxstudios.festivalconnection.ui.theme.*
 import com.appxstudios.festivalconnection.ui.theme.GradientIcon
 import java.text.SimpleDateFormat
@@ -31,9 +35,18 @@ fun TransactionHistoryScreen(
     transactions: List<WalletTransaction> = emptyList(),
     onDone: () -> Unit = {}
 ) {
+    // Refresh transactions from WalletManager on appear
+    LaunchedEffect(Unit) {
+        WalletManager.refreshTransactions()
+    }
+
+    // Fallback: if the passed list is empty, collect from WalletManager
+    val walletTransactions by WalletManager.transactions.collectAsState()
+    val effectiveTransactions = if (transactions.isEmpty()) walletTransactions else transactions
+
     // Group transactions by date label derived from timestamp
-    val grouped = remember(transactions) {
-        transactions.groupBy { tx -> formatDateLabel(tx.timestamp) }
+    val grouped = remember(effectiveTransactions) {
+        effectiveTransactions.groupBy { tx -> formatDateLabel(tx.timestamp) }
     }
 
     Column(
@@ -63,7 +76,7 @@ fun TransactionHistoryScreen(
             modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 16.dp)
         )
 
-        if (transactions.isEmpty()) {
+        if (effectiveTransactions.isEmpty()) {
             // Empty state
             Box(
                 modifier = Modifier

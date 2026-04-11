@@ -20,10 +20,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.appxstudios.festivalconnection.services.WalletManager
 import com.appxstudios.festivalconnection.ui.screens.*
 import com.appxstudios.festivalconnection.ui.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -60,7 +62,7 @@ fun MainTabsScreen() {
             PayScreen(
                 onCancel = { subScreen = SubScreen.None },
                 onNext = { amount, description ->
-                    subScreen = SubScreen.None
+                    subScreen = SubScreen.InvoiceScanner(amountCents = amount)
                 }
             )
             return
@@ -70,7 +72,16 @@ fun MainTabsScreen() {
                 onCancel = { subScreen = SubScreen.None },
                 onCreateRequest = { amount, description ->
                     walletCoroutineScope.launch {
-                        subScreen = SubScreen.None
+                        try {
+                            val amountSat = (amount.toDoubleOrNull() ?: 0.0).toLong()
+                            val invoice = WalletManager.createInvoice(
+                                amountSat = if (amountSat > 0) amountSat else 1000L,
+                                description = description
+                            )
+                            subScreen = SubScreen.InvoiceDisplay(invoice)
+                        } catch (e: Exception) {
+                            subScreen = SubScreen.None
+                        }
                     }
                 }
             )
@@ -78,12 +89,17 @@ fun MainTabsScreen() {
         }
         is SubScreen.AddFunds -> {
             AddFundsScreen(
-                onCancel = { subScreen = SubScreen.None }
+                onCancel = { subScreen = SubScreen.None },
+                onInvoiceCreated = { invoice ->
+                    subScreen = SubScreen.InvoiceDisplay(invoice)
+                }
             )
             return
         }
         is SubScreen.TransactionHistory -> {
+            val walletTransactions by WalletManager.transactions.collectAsState()
             TransactionHistoryScreen(
+                transactions = walletTransactions,
                 onDone = { subScreen = SubScreen.None }
             )
             return

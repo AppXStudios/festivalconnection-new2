@@ -17,10 +17,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
+import com.appxstudios.festivalconnection.security.NostrIdentity
+import com.appxstudios.festivalconnection.security.IdentityManager
 import com.appxstudios.festivalconnection.ui.theme.*
 import kotlinx.coroutines.delay
-import java.security.MessageDigest
-import java.security.SecureRandom
 
 @Composable
 fun SettingUpScreen(onInitialized: () -> Unit) {
@@ -37,21 +37,21 @@ fun SettingUpScreen(onInitialized: () -> Unit) {
     )
 
     LaunchedEffect(Unit) {
+        // Initialize real identity alongside the UX delay
+        NostrIdentity.initialize(context)
+        IdentityManager.initialize(context)
+
+        // Store public key and derived handle/nickname in shared prefs
         val prefs = context.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE)
+        val fingerprint = NostrIdentity.publicKeyHex
         if (prefs.getString("fc_handle", "").isNullOrEmpty()) {
-            val random = SecureRandom()
-            val keyBytes = ByteArray(32)
-            random.nextBytes(keyBytes)
-            val digest = MessageDigest.getInstance("SHA-256")
-            val fingerprint = digest.digest(keyBytes).joinToString("") { "%02x".format(it) }
-            val defaultHandle = fingerprint.take(8)
-            val defaultNickname = "Peer ${fingerprint.take(4).uppercase()}"
             prefs.edit()
-                .putString("fc_nickname", defaultNickname)
-                .putString("fc_handle", defaultHandle)
+                .putString("fc_nickname", "Peer ${fingerprint.take(4).uppercase()}")
+                .putString("fc_handle", fingerprint.take(8))
                 .putString("fc_public_key", fingerprint.take(64))
                 .apply()
         }
+
         delay(2000)
         onInitialized()
     }

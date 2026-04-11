@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.appxstudios.festivalconnection.models.ChannelMessage
+import com.appxstudios.festivalconnection.mesh.nostr.NostrChannels
 import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
 import com.appxstudios.festivalconnection.security.NostrIdentity
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
@@ -127,13 +128,18 @@ fun ChannelChatScreen(
             IconButton(
                 onClick = {
                     if (messageText.trim().isNotEmpty()) {
+                        val text = messageText.trim()
                         messages.add(ChannelMessage(
                             channelId = channelId,
                             senderPublicKeyHex = myKey,
                             senderDisplayName = "",
-                            content = messageText.trim()
+                            content = text
                         ))
                         messageText = ""
+
+                        // Publish kind-42 NIP-28 channel message with channelId as e-tag root
+                        val channelEvent = NostrChannels.sendChannelMessage(channelId, text)
+                        NostrRelayManager.publishEvent(channelEvent)
                     }
                 }
             ) {

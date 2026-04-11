@@ -22,6 +22,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.appxstudios.festivalconnection.models.ChannelInfo
+import com.appxstudios.festivalconnection.mesh.nostr.NostrChannels
+import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
 import com.appxstudios.festivalconnection.ui.theme.*
 
@@ -36,6 +38,31 @@ fun ChannelsScreen(
     val channels = remember { mutableStateListOf<ChannelInfo>() }
     var channelName by remember { mutableStateOf("") }
     var channelDesc by remember { mutableStateOf("") }
+
+    // Subscribe to kind-40 channel creation events for discovery
+    LaunchedEffect(Unit) {
+        val filter = NostrChannels.channelDiscoveryFilter()
+        NostrRelayManager.subscribe(filter)
+
+        val previousHandler = NostrRelayManager.onEvent
+        NostrRelayManager.onEvent = { event ->
+            previousHandler?.invoke(event)
+            if (event.kind == 40) {
+                val parsed = NostrChannels.parseChannelCreation(event)
+                if (parsed != null) {
+                    val (name, about, _) = parsed
+                    val exists = channels.any { it.id == event.id }
+                    if (!exists && name.isNotBlank()) {
+                        channels.add(ChannelInfo(
+                            id = event.id,
+                            name = name,
+                            channelDescription = about
+                        ))
+                    }
+                }
+            }
+        }
+    }
 
     val filteredChannels = channels.filter {
         searchText.isEmpty() || it.name.contains(searchText, ignoreCase = true)
@@ -185,8 +212,13 @@ fun ChannelsScreen(
         CreateChannelBottomSheet(
             onDismiss = { showCreateSheet = false },
             onCreate = { name, desc ->
+                // Publish kind-40 NIP-28 channel creation event
+                val channelEvent = NostrChannels.createChannel(name, desc)
+                NostrRelayManager.publishEvent(channelEvent)
+
+                // Use the Nostr event ID as the channel ID
                 channels.add(ChannelInfo(
-                    id = java.util.UUID.randomUUID().toString(),
+                    id = channelEvent.id,
                     name = name,
                     channelDescription = desc
                 ))

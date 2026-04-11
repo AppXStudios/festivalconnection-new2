@@ -185,6 +185,26 @@ struct EditProfileSheet: View {
         UserDefaults.standard.set(aboutText, forKey: "fc_about")
         UserDefaults.standard.synchronize()
 
+        // Broadcast updated profile via Nostr kind-0 metadata
+        let profileJSON: [String: Any] = [
+            "name": trimmedName,
+            "display_name": trimmedName,
+            "nip05": trimmedHandle,
+            "about": aboutText
+        ]
+        if let jsonData = try? JSONSerialization.data(withJSONObject: profileJSON),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            let event = NostrEvent.create(kind: 0, content: jsonString)
+            NostrRelayManager.shared.publishEvent(event)
+        }
+
+        // Update BLE announce nickname
+        BLEService.shared.configure(
+            peerIDData: IdentityManager.shared.peerID(),
+            nickname: trimmedName
+        )
+        BLEService.shared.sendAnnounce()
+
         dismiss()
     }
 }
@@ -212,6 +232,10 @@ struct CameraPickerView: UIViewControllerRepresentable {
         }
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            if let image = info[.originalImage] as? UIImage,
+               let data = image.jpegData(compressionQuality: 0.8) {
+                UserDefaults.standard.set(data, forKey: "fc_profile_picture")
+            }
             dismiss()
         }
     }
