@@ -1,0 +1,729 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		017B2B1DC0C6F7B058A57D2C /* ChannelChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9459EC3BADE99645607603A8 /* ChannelChatView.swift */; };
+		05D093410F2B18560886FEA1 /* RequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CE1E09619A523017AAE98A /* RequestView.swift */; };
+		072BA6357C52B5C6F2E64034 /* PacketProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 221F3CF3ECBF9274120B0B35 /* PacketProcessor.swift */; };
+		085B2187B1D4E62A0E642410 /* ChannelMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CC96ABB324E44FB4E9D702F /* ChannelMessage.swift */; };
+		08D07B4D4747D400543F4E48 /* NewChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 620985DF940D455031E91941 /* NewChatView.swift */; };
+		100C313033A2FF47B74D3AC3 /* BLEService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0E3B40C0E415EF6A714A9C /* BLEService.swift */; };
+		1C56C34D38127C7CD8278920 /* BreezSDKLiquid in Frameworks */ = {isa = PBXBuildFile; productRef = AF76F49B05B8E43D95684B78 /* BreezSDKLiquid */; };
+		1FBEDADDE4B92703F5F94248 /* CreateChannelSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41CFE1E9F0C90E5E0A07CC7F /* CreateChannelSheet.swift */; };
+		22EA06B397BCD2BB7FBDFDE7 /* NostrChannels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AA640B822895D2301D2FDA9 /* NostrChannels.swift */; };
+		23630638D2EFE9DDDF433925 /* ChannelsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87068A425C2FCBD8EA177A7D /* ChannelsView.swift */; };
+		25165B5B94D4D1F0838E1A81 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB62DF1500D71A8E30B566B9 /* CoreLocation.framework */; };
+		3011B36459BE3AD0E6EB12C8 /* FestivalConnectionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93DB8C783918660CC6E4165F /* FestivalConnectionApp.swift */; };
+		317B2FD3E1FA011CE755A08B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 33432DBF55A3823B0751BA0B /* Assets.xcassets */; };
+		33B438819AFC15BBEFEFF5CE /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51B5200FCD074F6BE84805D6 /* MainTabView.swift */; };
+		358BDF9B132726EB70510E02 /* NostrBech32.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5853028C965061DEB44722AA /* NostrBech32.swift */; };
+		3F0AC5E2E1D0D11F99A8750F /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1558636BF364EDDA9D24225E /* AVFoundation.framework */; };
+		45773FF319D538A7FF486017 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51843D928760A32E215662D8 /* ChatView.swift */; };
+		46EE93891FCAA598F09BB64D /* PermissionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D654F4426EC4542FC835E938 /* PermissionsManager.swift */; };
+		4A54E7C871047775E29F4D5D /* NostrDM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7AE47490DAB2AF57E7DC /* NostrDM.swift */; };
+		4C7E7DFBDFB380E5B2C270A1 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0F1CA21DB5AD85430D42BA80 /* CoreBluetooth.framework */; };
+		56078CB465F6D129C282A552 /* IdentityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E87474F5F1714003BB9A7712 /* IdentityManager.swift */; };
+		60A2E0D45D2D9E07891F0881 /* NostrIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF10E10BBA7BFCD3C6ED86BF /* NostrIdentity.swift */; };
+		61B2D0718D5CD67E77801E79 /* NostrEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76C0148E3B33337974D08C9B /* NostrEvent.swift */; };
+		62E29AAC6198AF7FB70BC08A /* NearbyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72495EA15140F6694BE083D6 /* NearbyView.swift */; };
+		6328CACC2F2545800F2359B0 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C6A6C003C5B72ECC3BD632B /* AppState.swift */; };
+		6359065ACF30DE703C3F9578 /* ChannelInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D5D479A4C1C7580D35FC047 /* ChannelInfo.swift */; };
+		66BDCA542D125CFD569B52F6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 032035CCF191CA63F1CCBF0A /* SettingsView.swift */; };
+		6BD60A582BFF41884919E6D2 /* WalletHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6765AF4087E4B7279E6A0C75 /* WalletHomeView.swift */; };
+		70B8C22145ED100EC40C6F12 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A93B570377A4A9F1FF3BA9 /* RootView.swift */; };
+		7185C28A4089D4DD6CA8D56E /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CBFC837513D61D11DA0F1C82 /* UserNotifications.framework */; };
+		74C947D7AE08145289FEC35A /* FestivalTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39A9AF45F40BBC51C59130EA /* FestivalTheme.swift */; };
+		753E830984F72FBB1D76D82B /* TransactionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8ED2261607BDC647A02E79 /* TransactionHistoryView.swift */; };
+		78218B3312FDEF76579246C6 /* NostrRelayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7909E93C287AD6624171D173 /* NostrRelayManager.swift */; };
+		78CEBE65EE1C877A632ABA95 /* GossipSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = C56D211106DF1D14866C9FB4 /* GossipSync.swift */; };
+		7A46468A3118F52274A35A5F /* NumericKeypad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E198EDC67E061E04D88592 /* NumericKeypad.swift */; };
+		7E9FEDEF27F923B2081297D8 /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04C7C4D009D6125F28A64C97 /* PermissionsView.swift */; };
+		8247B42F7921F12625A19E35 /* InvoiceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CD8C5692CE31335AF94690 /* InvoiceScannerView.swift */; };
+		8FF856F929BEE32E26D50D08 /* CircularAvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0F4ADD15A2FB5D02B790A9B /* CircularAvatarView.swift */; };
+		9277F93A22F35A07AC71CC44 /* GradientIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC57B0D75AC650E0A0210776 /* GradientIcon.swift */; };
+		929F55E402F902D21B2F0BA0 /* InvoiceDisplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88466AE8256E3DD078222194 /* InvoiceDisplayView.swift */; };
+		96D4AF6771A82B4D1A2B7A20 /* NoiseProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3490EB4A3456B1C5686F35D1 /* NoiseProtocol.swift */; };
+		9D1638DCAA5A4D302EFF629E /* WalletManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E991DBCE1D667F9F46A124B5 /* WalletManager.swift */; };
+		9D4969567780684DFB0DCCC7 /* georelays.csv in Resources */ = {isa = PBXBuildFile; fileRef = 3F96F316A9B4FE7A4076D06D /* georelays.csv */; };
+		9E2BD9B9FE8A5880FC7626CE /* nostr_relays.csv in Resources */ = {isa = PBXBuildFile; fileRef = 7D233F2F2B66B349880632AE /* nostr_relays.csv */; };
+		A2E299CF6FF29F63D2AA0A09 /* AddFundsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1C043DFE4676854F2DFF1AB /* AddFundsView.swift */; };
+		AAA894C69D83D1ADB24E5CD9 /* WalletTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E7965AED8DC5B1789763056 /* WalletTransaction.swift */; };
+		AAB9438D35C46A0399F69EDC /* NostrMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = A025485C83886A5B221AC690 /* NostrMessages.swift */; };
+		AFB74F29E083B8BA151119B4 /* MultipeerConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7EFDE5DE7D468AF5088B7CB0 /* MultipeerConnectivity.framework */; };
+		B4095B7692E1FBCF48C1DA63 /* Network.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 649B2A8644B250973476C60F /* Network.framework */; };
+		B6BC3633461F8F3BFECB8227 /* SettingUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B906B0B8C6A22408034A8384 /* SettingUpView.swift */; };
+		B7F0FF96C38AEAB0CC2F9660 /* MultipeerTransportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF2B1C3C8C189BBE8F835768 /* MultipeerTransportManager.swift */; };
+		C07C55A8F87B64278F425924 /* ChatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77A5E7E36931A1C7A86000A8 /* ChatsView.swift */; };
+		C3B5403D21CD239F72A15D12 /* PhotosUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FC2EBAD481404015A7EF5F15 /* PhotosUI.framework */; };
+		D007AB72DB178F8E4AF5BE2A /* CrowdSyncPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32CE0D1C88B0AF15FF02BC75 /* CrowdSyncPacket.swift */; };
+		D3E32D5CA0904F56B0EEED71 /* PeerInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5169176AB0BBE6ACA031B1D7 /* PeerInfo.swift */; };
+		D529BC98E68646C627220232 /* MessageTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFF202348916439D5C064AAB /* MessageTypes.swift */; };
+		D5613C5765789687D593713B /* EditProfileSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3FCD02A20C206367AAB42C2 /* EditProfileSheet.swift */; };
+		D88BD163593D9536AF67CD8C /* PayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66AE66FD97F357063B3EB3AA /* PayView.swift */; };
+		DC2570F3A2D15A88F7E78F83 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BE76176D649BCB8A5CD7667 /* Security.framework */; };
+		DDA9051D9F4A37F91A70D863 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3556AF7E1A42EE4248B6C844 /* ChatMessage.swift */; };
+		F72EFCF71E0EF0EB734DCB87 /* QRView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FFF75FECE31440D78FD174 /* QRView.swift */; };
+		FA87FAF53F5F25CAAEB7B72F /* LaunchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2AEDD1E2E9FE804E1FA724A /* LaunchScreen.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		032035CCF191CA63F1CCBF0A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		04C7C4D009D6125F28A64C97 /* PermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsView.swift; sourceTree = "<group>"; };
+		05CE1E09619A523017AAE98A /* RequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestView.swift; sourceTree = "<group>"; };
+		0C0E3B40C0E415EF6A714A9C /* BLEService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEService.swift; sourceTree = "<group>"; };
+		0C8D7AE47490DAB2AF57E7DC /* NostrDM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrDM.swift; sourceTree = "<group>"; };
+		0F1CA21DB5AD85430D42BA80 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
+		1558636BF364EDDA9D24225E /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		18A93B570377A4A9F1FF3BA9 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		1BE76176D649BCB8A5CD7667 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		1C6A6C003C5B72ECC3BD632B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		221F3CF3ECBF9274120B0B35 /* PacketProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PacketProcessor.swift; sourceTree = "<group>"; };
+		32CE0D1C88B0AF15FF02BC75 /* CrowdSyncPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrowdSyncPacket.swift; sourceTree = "<group>"; };
+		33432DBF55A3823B0751BA0B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		3490EB4A3456B1C5686F35D1 /* NoiseProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoiseProtocol.swift; sourceTree = "<group>"; };
+		3556AF7E1A42EE4248B6C844 /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
+		37CD8C5692CE31335AF94690 /* InvoiceScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvoiceScannerView.swift; sourceTree = "<group>"; };
+		37E198EDC67E061E04D88592 /* NumericKeypad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumericKeypad.swift; sourceTree = "<group>"; };
+		39A9AF45F40BBC51C59130EA /* FestivalTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FestivalTheme.swift; sourceTree = "<group>"; };
+		3F96F316A9B4FE7A4076D06D /* georelays.csv */ = {isa = PBXFileReference; path = georelays.csv; sourceTree = "<group>"; };
+		41CFE1E9F0C90E5E0A07CC7F /* CreateChannelSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateChannelSheet.swift; sourceTree = "<group>"; };
+		4F8ED2261607BDC647A02E79 /* TransactionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionHistoryView.swift; sourceTree = "<group>"; };
+		5169176AB0BBE6ACA031B1D7 /* PeerInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerInfo.swift; sourceTree = "<group>"; };
+		51843D928760A32E215662D8 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		51B5200FCD074F6BE84805D6 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		5853028C965061DEB44722AA /* NostrBech32.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrBech32.swift; sourceTree = "<group>"; };
+		58FFF75FECE31440D78FD174 /* QRView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRView.swift; sourceTree = "<group>"; };
+		620985DF940D455031E91941 /* NewChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewChatView.swift; sourceTree = "<group>"; };
+		649B2A8644B250973476C60F /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
+		66AE66FD97F357063B3EB3AA /* PayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayView.swift; sourceTree = "<group>"; };
+		6765AF4087E4B7279E6A0C75 /* WalletHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletHomeView.swift; sourceTree = "<group>"; };
+		716995F8286FD1D02BD7A7C4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		72495EA15140F6694BE083D6 /* NearbyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyView.swift; sourceTree = "<group>"; };
+		76C0148E3B33337974D08C9B /* NostrEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrEvent.swift; sourceTree = "<group>"; };
+		77A5E7E36931A1C7A86000A8 /* ChatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatsView.swift; sourceTree = "<group>"; };
+		7909E93C287AD6624171D173 /* NostrRelayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrRelayManager.swift; sourceTree = "<group>"; };
+		7D233F2F2B66B349880632AE /* nostr_relays.csv */ = {isa = PBXFileReference; path = nostr_relays.csv; sourceTree = "<group>"; };
+		7EFDE5DE7D468AF5088B7CB0 /* MultipeerConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MultipeerConnectivity.framework; path = System/Library/Frameworks/MultipeerConnectivity.framework; sourceTree = SDKROOT; };
+		87068A425C2FCBD8EA177A7D /* ChannelsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsView.swift; sourceTree = "<group>"; };
+		88466AE8256E3DD078222194 /* InvoiceDisplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvoiceDisplayView.swift; sourceTree = "<group>"; };
+		8D5D479A4C1C7580D35FC047 /* ChannelInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelInfo.swift; sourceTree = "<group>"; };
+		8E7965AED8DC5B1789763056 /* WalletTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletTransaction.swift; sourceTree = "<group>"; };
+		93DB8C783918660CC6E4165F /* FestivalConnectionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FestivalConnectionApp.swift; sourceTree = "<group>"; };
+		9459EC3BADE99645607603A8 /* ChannelChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelChatView.swift; sourceTree = "<group>"; };
+		9AA640B822895D2301D2FDA9 /* NostrChannels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrChannels.swift; sourceTree = "<group>"; };
+		9CC96ABB324E44FB4E9D702F /* ChannelMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelMessage.swift; sourceTree = "<group>"; };
+		A025485C83886A5B221AC690 /* NostrMessages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrMessages.swift; sourceTree = "<group>"; };
+		A0F4ADD15A2FB5D02B790A9B /* CircularAvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularAvatarView.swift; sourceTree = "<group>"; };
+		A2AEDD1E2E9FE804E1FA724A /* LaunchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchScreen.swift; sourceTree = "<group>"; };
+		B906B0B8C6A22408034A8384 /* SettingUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingUpView.swift; sourceTree = "<group>"; };
+		BF10E10BBA7BFCD3C6ED86BF /* NostrIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrIdentity.swift; sourceTree = "<group>"; };
+		C3FCD02A20C206367AAB42C2 /* EditProfileSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileSheet.swift; sourceTree = "<group>"; };
+		C56D211106DF1D14866C9FB4 /* GossipSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GossipSync.swift; sourceTree = "<group>"; };
+		CBFC837513D61D11DA0F1C82 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
+		D1C043DFE4676854F2DFF1AB /* AddFundsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFundsView.swift; sourceTree = "<group>"; };
+		D654F4426EC4542FC835E938 /* PermissionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsManager.swift; sourceTree = "<group>"; };
+		DB62DF1500D71A8E30B566B9 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		DC57B0D75AC650E0A0210776 /* GradientIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientIcon.swift; sourceTree = "<group>"; };
+		DCCAF0EBD2695D9A98258356 /* FestivalConnection.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FestivalConnection.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E87474F5F1714003BB9A7712 /* IdentityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityManager.swift; sourceTree = "<group>"; };
+		E991DBCE1D667F9F46A124B5 /* WalletManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletManager.swift; sourceTree = "<group>"; };
+		FC2EBAD481404015A7EF5F15 /* PhotosUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PhotosUI.framework; path = System/Library/Frameworks/PhotosUI.framework; sourceTree = SDKROOT; };
+		FF2B1C3C8C189BBE8F835768 /* MultipeerTransportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerTransportManager.swift; sourceTree = "<group>"; };
+		FFF202348916439D5C064AAB /* MessageTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageTypes.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B9135DA8D2A9F2E850729FE9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AFB74F29E083B8BA151119B4 /* MultipeerConnectivity.framework in Frameworks */,
+				4C7E7DFBDFB380E5B2C270A1 /* CoreBluetooth.framework in Frameworks */,
+				3F0AC5E2E1D0D11F99A8750F /* AVFoundation.framework in Frameworks */,
+				25165B5B94D4D1F0838E1A81 /* CoreLocation.framework in Frameworks */,
+				DC2570F3A2D15A88F7E78F83 /* Security.framework in Frameworks */,
+				B4095B7692E1FBCF48C1DA63 /* Network.framework in Frameworks */,
+				7185C28A4089D4DD6CA8D56E /* UserNotifications.framework in Frameworks */,
+				C3B5403D21CD239F72A15D12 /* PhotosUI.framework in Frameworks */,
+				1C56C34D38127C7CD8278920 /* BreezSDKLiquid in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1B38F2EA24135A123E9597DB /* App */ = {
+			isa = PBXGroup;
+			children = (
+				1C6A6C003C5B72ECC3BD632B /* AppState.swift */,
+				93DB8C783918660CC6E4165F /* FestivalConnectionApp.swift */,
+				18A93B570377A4A9F1FF3BA9 /* RootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		23D9ADC59C487DEEF536C60A /* Wallet */ = {
+			isa = PBXGroup;
+			children = (
+				D1C043DFE4676854F2DFF1AB /* AddFundsView.swift */,
+				88466AE8256E3DD078222194 /* InvoiceDisplayView.swift */,
+				37CD8C5692CE31335AF94690 /* InvoiceScannerView.swift */,
+				66AE66FD97F357063B3EB3AA /* PayView.swift */,
+				05CE1E09619A523017AAE98A /* RequestView.swift */,
+				4F8ED2261607BDC647A02E79 /* TransactionHistoryView.swift */,
+			);
+			path = Wallet;
+			sourceTree = "<group>";
+		};
+		2654E12327134A78B9EAB24F /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				A0F4ADD15A2FB5D02B790A9B /* CircularAvatarView.swift */,
+				DC57B0D75AC650E0A0210776 /* GradientIcon.swift */,
+				37E198EDC67E061E04D88592 /* NumericKeypad.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		29BA07F81CA3D133EDF89DE8 /* Protocol */ = {
+			isa = PBXGroup;
+			children = (
+				32CE0D1C88B0AF15FF02BC75 /* CrowdSyncPacket.swift */,
+				FFF202348916439D5C064AAB /* MessageTypes.swift */,
+			);
+			path = Protocol;
+			sourceTree = "<group>";
+		};
+		2CA997D7E56693429C1193A5 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				D654F4426EC4542FC835E938 /* PermissionsManager.swift */,
+				E991DBCE1D667F9F46A124B5 /* WalletManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		2F5C7C45F5DFA682CE6BB0F3 /* Nostr */ = {
+			isa = PBXGroup;
+			children = (
+				5853028C965061DEB44722AA /* NostrBech32.swift */,
+				9AA640B822895D2301D2FDA9 /* NostrChannels.swift */,
+				0C8D7AE47490DAB2AF57E7DC /* NostrDM.swift */,
+				76C0148E3B33337974D08C9B /* NostrEvent.swift */,
+				BF10E10BBA7BFCD3C6ED86BF /* NostrIdentity.swift */,
+				A025485C83886A5B221AC690 /* NostrMessages.swift */,
+				7909E93C287AD6624171D173 /* NostrRelayManager.swift */,
+			);
+			path = Nostr;
+			sourceTree = "<group>";
+		};
+		3CFB6935FFB77A15DE6D3EC7 /* Security */ = {
+			isa = PBXGroup;
+			children = (
+				E87474F5F1714003BB9A7712 /* IdentityManager.swift */,
+				46414AA0DFEEDFB1FF6AA830 /* Noise */,
+			);
+			path = Security;
+			sourceTree = "<group>";
+		};
+		46414AA0DFEEDFB1FF6AA830 /* Noise */ = {
+			isa = PBXGroup;
+			children = (
+				3490EB4A3456B1C5686F35D1 /* NoiseProtocol.swift */,
+			);
+			path = Noise;
+			sourceTree = "<group>";
+		};
+		5127B5317B7D88C5A9EDD963 /* FestivalConnection */ = {
+			isa = PBXGroup;
+			children = (
+				1B38F2EA24135A123E9597DB /* App */,
+				BE4FD25C0759913988AF9C22 /* Mesh */,
+				F46B616F619FCCBC4821EE89 /* Models */,
+				29BA07F81CA3D133EDF89DE8 /* Protocol */,
+				74A7E0DC0ECF5883B48C38C7 /* Resources */,
+				3CFB6935FFB77A15DE6D3EC7 /* Security */,
+				2CA997D7E56693429C1193A5 /* Services */,
+				DC440BCD8E02D2456FFC7D47 /* UI */,
+			);
+			path = FestivalConnection;
+			sourceTree = "<group>";
+		};
+		51DB01EF450A68A97F9204C6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DCCAF0EBD2695D9A98258356 /* FestivalConnection.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		543450D907E87C78E86A4CE1 /* Screens */ = {
+			isa = PBXGroup;
+			children = (
+				9459EC3BADE99645607603A8 /* ChannelChatView.swift */,
+				87068A425C2FCBD8EA177A7D /* ChannelsView.swift */,
+				77A5E7E36931A1C7A86000A8 /* ChatsView.swift */,
+				51843D928760A32E215662D8 /* ChatView.swift */,
+				41CFE1E9F0C90E5E0A07CC7F /* CreateChannelSheet.swift */,
+				C3FCD02A20C206367AAB42C2 /* EditProfileSheet.swift */,
+				A2AEDD1E2E9FE804E1FA724A /* LaunchScreen.swift */,
+				51B5200FCD074F6BE84805D6 /* MainTabView.swift */,
+				72495EA15140F6694BE083D6 /* NearbyView.swift */,
+				620985DF940D455031E91941 /* NewChatView.swift */,
+				04C7C4D009D6125F28A64C97 /* PermissionsView.swift */,
+				58FFF75FECE31440D78FD174 /* QRView.swift */,
+				032035CCF191CA63F1CCBF0A /* SettingsView.swift */,
+				B906B0B8C6A22408034A8384 /* SettingUpView.swift */,
+				6765AF4087E4B7279E6A0C75 /* WalletHomeView.swift */,
+			);
+			path = Screens;
+			sourceTree = "<group>";
+		};
+		74A7E0DC0ECF5883B48C38C7 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				33432DBF55A3823B0751BA0B /* Assets.xcassets */,
+				3F96F316A9B4FE7A4076D06D /* georelays.csv */,
+				716995F8286FD1D02BD7A7C4 /* Info.plist */,
+				7D233F2F2B66B349880632AE /* nostr_relays.csv */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		81ABC13143BA282AA51258EF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				1558636BF364EDDA9D24225E /* AVFoundation.framework */,
+				0F1CA21DB5AD85430D42BA80 /* CoreBluetooth.framework */,
+				DB62DF1500D71A8E30B566B9 /* CoreLocation.framework */,
+				7EFDE5DE7D468AF5088B7CB0 /* MultipeerConnectivity.framework */,
+				649B2A8644B250973476C60F /* Network.framework */,
+				FC2EBAD481404015A7EF5F15 /* PhotosUI.framework */,
+				1BE76176D649BCB8A5CD7667 /* Security.framework */,
+				CBFC837513D61D11DA0F1C82 /* UserNotifications.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		8F017A243521CD23EFE146A2 /* Multipeer */ = {
+			isa = PBXGroup;
+			children = (
+				FF2B1C3C8C189BBE8F835768 /* MultipeerTransportManager.swift */,
+			);
+			path = Multipeer;
+			sourceTree = "<group>";
+		};
+		A5CFB29BC1DE17966C0068A4 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				C56D211106DF1D14866C9FB4 /* GossipSync.swift */,
+				221F3CF3ECBF9274120B0B35 /* PacketProcessor.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		B2387E063EEED43C27464F4B /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				39A9AF45F40BBC51C59130EA /* FestivalTheme.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		BE4FD25C0759913988AF9C22 /* Mesh */ = {
+			isa = PBXGroup;
+			children = (
+				F2938D50CB086E761645EBBF /* BLE */,
+				8F017A243521CD23EFE146A2 /* Multipeer */,
+				2F5C7C45F5DFA682CE6BB0F3 /* Nostr */,
+				A5CFB29BC1DE17966C0068A4 /* Shared */,
+			);
+			path = Mesh;
+			sourceTree = "<group>";
+		};
+		DC440BCD8E02D2456FFC7D47 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				2654E12327134A78B9EAB24F /* Components */,
+				543450D907E87C78E86A4CE1 /* Screens */,
+				B2387E063EEED43C27464F4B /* Theme */,
+				23D9ADC59C487DEEF536C60A /* Wallet */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		EA871FC17075EF845B2AD57E = {
+			isa = PBXGroup;
+			children = (
+				5127B5317B7D88C5A9EDD963 /* FestivalConnection */,
+				81ABC13143BA282AA51258EF /* Frameworks */,
+				51DB01EF450A68A97F9204C6 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F2938D50CB086E761645EBBF /* BLE */ = {
+			isa = PBXGroup;
+			children = (
+				0C0E3B40C0E415EF6A714A9C /* BLEService.swift */,
+			);
+			path = BLE;
+			sourceTree = "<group>";
+		};
+		F46B616F619FCCBC4821EE89 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				8D5D479A4C1C7580D35FC047 /* ChannelInfo.swift */,
+				9CC96ABB324E44FB4E9D702F /* ChannelMessage.swift */,
+				3556AF7E1A42EE4248B6C844 /* ChatMessage.swift */,
+				5169176AB0BBE6ACA031B1D7 /* PeerInfo.swift */,
+				8E7965AED8DC5B1789763056 /* WalletTransaction.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		380AC1B5F903C5BA5C63EDFB /* FestivalConnection */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EE3C1D90C7CFC961628CA21E /* Build configuration list for PBXNativeTarget "FestivalConnection" */;
+			buildPhases = (
+				236DEFFF147EE464175CC360 /* Sources */,
+				2E2B8EEFD41527165C152221 /* Resources */,
+				B9135DA8D2A9F2E850729FE9 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FestivalConnection;
+			packageProductDependencies = (
+				AF76F49B05B8E43D95684B78 /* BreezSDKLiquid */,
+			);
+			productName = FestivalConnection;
+			productReference = DCCAF0EBD2695D9A98258356 /* FestivalConnection.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		51264C1850ACCCB5893D4935 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					380AC1B5F903C5BA5C63EDFB = {
+						DevelopmentTeam = 8G7T852A54;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = FB2FF0CFFC6D1120914C14FA /* Build configuration list for PBXProject "FestivalConnection" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = EA871FC17075EF845B2AD57E;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				30E956AEBDBD0E1D6A222DBB /* XCRemoteSwiftPackageReference "breez-sdk-liquid-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 51DB01EF450A68A97F9204C6 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				380AC1B5F903C5BA5C63EDFB /* FestivalConnection */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		2E2B8EEFD41527165C152221 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				317B2FD3E1FA011CE755A08B /* Assets.xcassets in Resources */,
+				9D4969567780684DFB0DCCC7 /* georelays.csv in Resources */,
+				9E2BD9B9FE8A5880FC7626CE /* nostr_relays.csv in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		236DEFFF147EE464175CC360 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A2E299CF6FF29F63D2AA0A09 /* AddFundsView.swift in Sources */,
+				6328CACC2F2545800F2359B0 /* AppState.swift in Sources */,
+				100C313033A2FF47B74D3AC3 /* BLEService.swift in Sources */,
+				017B2B1DC0C6F7B058A57D2C /* ChannelChatView.swift in Sources */,
+				6359065ACF30DE703C3F9578 /* ChannelInfo.swift in Sources */,
+				085B2187B1D4E62A0E642410 /* ChannelMessage.swift in Sources */,
+				23630638D2EFE9DDDF433925 /* ChannelsView.swift in Sources */,
+				DDA9051D9F4A37F91A70D863 /* ChatMessage.swift in Sources */,
+				45773FF319D538A7FF486017 /* ChatView.swift in Sources */,
+				C07C55A8F87B64278F425924 /* ChatsView.swift in Sources */,
+				8FF856F929BEE32E26D50D08 /* CircularAvatarView.swift in Sources */,
+				1FBEDADDE4B92703F5F94248 /* CreateChannelSheet.swift in Sources */,
+				D007AB72DB178F8E4AF5BE2A /* CrowdSyncPacket.swift in Sources */,
+				D5613C5765789687D593713B /* EditProfileSheet.swift in Sources */,
+				3011B36459BE3AD0E6EB12C8 /* FestivalConnectionApp.swift in Sources */,
+				74C947D7AE08145289FEC35A /* FestivalTheme.swift in Sources */,
+				78CEBE65EE1C877A632ABA95 /* GossipSync.swift in Sources */,
+				9277F93A22F35A07AC71CC44 /* GradientIcon.swift in Sources */,
+				56078CB465F6D129C282A552 /* IdentityManager.swift in Sources */,
+				929F55E402F902D21B2F0BA0 /* InvoiceDisplayView.swift in Sources */,
+				8247B42F7921F12625A19E35 /* InvoiceScannerView.swift in Sources */,
+				FA87FAF53F5F25CAAEB7B72F /* LaunchScreen.swift in Sources */,
+				33B438819AFC15BBEFEFF5CE /* MainTabView.swift in Sources */,
+				D529BC98E68646C627220232 /* MessageTypes.swift in Sources */,
+				B7F0FF96C38AEAB0CC2F9660 /* MultipeerTransportManager.swift in Sources */,
+				62E29AAC6198AF7FB70BC08A /* NearbyView.swift in Sources */,
+				08D07B4D4747D400543F4E48 /* NewChatView.swift in Sources */,
+				96D4AF6771A82B4D1A2B7A20 /* NoiseProtocol.swift in Sources */,
+				358BDF9B132726EB70510E02 /* NostrBech32.swift in Sources */,
+				22EA06B397BCD2BB7FBDFDE7 /* NostrChannels.swift in Sources */,
+				4A54E7C871047775E29F4D5D /* NostrDM.swift in Sources */,
+				61B2D0718D5CD67E77801E79 /* NostrEvent.swift in Sources */,
+				60A2E0D45D2D9E07891F0881 /* NostrIdentity.swift in Sources */,
+				AAB9438D35C46A0399F69EDC /* NostrMessages.swift in Sources */,
+				78218B3312FDEF76579246C6 /* NostrRelayManager.swift in Sources */,
+				7A46468A3118F52274A35A5F /* NumericKeypad.swift in Sources */,
+				072BA6357C52B5C6F2E64034 /* PacketProcessor.swift in Sources */,
+				D88BD163593D9536AF67CD8C /* PayView.swift in Sources */,
+				D3E32D5CA0904F56B0EEED71 /* PeerInfo.swift in Sources */,
+				46EE93891FCAA598F09BB64D /* PermissionsManager.swift in Sources */,
+				7E9FEDEF27F923B2081297D8 /* PermissionsView.swift in Sources */,
+				F72EFCF71E0EF0EB734DCB87 /* QRView.swift in Sources */,
+				05D093410F2B18560886FEA1 /* RequestView.swift in Sources */,
+				70B8C22145ED100EC40C6F12 /* RootView.swift in Sources */,
+				B6BC3633461F8F3BFECB8227 /* SettingUpView.swift in Sources */,
+				66BDCA542D125CFD569B52F6 /* SettingsView.swift in Sources */,
+				753E830984F72FBB1D76D82B /* TransactionHistoryView.swift in Sources */,
+				6BD60A582BFF41884919E6D2 /* WalletHomeView.swift in Sources */,
+				9D1638DCAA5A4D302EFF629E /* WalletManager.swift in Sources */,
+				AAA894C69D83D1ADB24E5CD9 /* WalletTransaction.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		110C38B5DB328F5F3BC7186A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 8G7T852A54;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_FILE = FestivalConnection/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		8E9A64EF185C65095C6F9322 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 8G7T852A54;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_FILE = FestivalConnection/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		B4ADD40F668F7189F07D555F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 10;
+				INFOPLIST_FILE = FestivalConnection/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.7.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.appxstudios.festivalconnection;
+				PRODUCT_NAME = FestivalConnection;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		D7B5AFA7D5694EEEFECF10A2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 10;
+				INFOPLIST_FILE = FestivalConnection/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.7.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.appxstudios.festivalconnection;
+				PRODUCT_NAME = FestivalConnection;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		EE3C1D90C7CFC961628CA21E /* Build configuration list for PBXNativeTarget "FestivalConnection" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D7B5AFA7D5694EEEFECF10A2 /* Debug */,
+				B4ADD40F668F7189F07D555F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		FB2FF0CFFC6D1120914C14FA /* Build configuration list for PBXProject "FestivalConnection" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				110C38B5DB328F5F3BC7186A /* Debug */,
+				8E9A64EF185C65095C6F9322 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		30E956AEBDBD0E1D6A222DBB /* XCRemoteSwiftPackageReference "breez-sdk-liquid-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/breez/breez-sdk-liquid-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.12.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AF76F49B05B8E43D95684B78 /* BreezSDKLiquid */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 30E956AEBDBD0E1D6A222DBB /* XCRemoteSwiftPackageReference "breez-sdk-liquid-swift" */;
+			productName = BreezSDKLiquid;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 51264C1850ACCCB5893D4935 /* Project object */;
+}
