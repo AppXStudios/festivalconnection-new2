@@ -101,6 +101,14 @@ fun EditProfileSheet(
                         .putString("fc_handle", trimmedHandle)
                         .putString("fc_about", aboutText)
                         .apply()
+
+                    // Broadcast updated profile via Nostr kind-0 metadata
+                    val profileJson = """{"name":"$trimmedName","display_name":"$trimmedName","nip05":"$trimmedHandle","about":"$aboutText"}"""
+                    val metadataEvent = com.appxstudios.festivalconnection.mesh.nostr.NostrEvent.create(
+                        kind = 0, content = profileJson
+                    )
+                    com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager.publishEvent(metadataEvent)
+
                     onDismiss()
                 },
                 enabled = isFormValid
