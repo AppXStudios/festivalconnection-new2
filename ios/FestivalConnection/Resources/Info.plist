@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key>
+    <string>Festival Connection</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundleVersion</key>
+    <string>13</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.7.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+    <key>UILaunchScreen</key>
+    <dict>
+        <key>UIColorName</key>
+        <string>AccentColor</string>
+    </dict>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>armv7</string>
+    </array>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>Festival Connection uses Bluetooth to power CrowdSync™ — offline messaging that connects you with nearby people at festivals without internet.</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>Festival Connection uses Bluetooth in the background to keep CrowdSync™ connections active so you never miss a message.</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Festival Connection uses your local network to extend CrowdSync™ connections over Wi-Fi between nearby iPhones.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Festival Connection uses your location to find nearby channels and connect you with people at the same venue through CrowdSync™.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Festival Connection uses your location to maintain CrowdSync™ connections and discover geo-local channels.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Festival Connection uses the camera to scan QR codes for connecting with other attendees and to set your profile picture.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Festival Connection uses the microphone to record voice messages.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Festival Connection accesses your photo library to set your profile picture.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>bluetooth-central</string>
+        <string>bluetooth-peripheral</string>
+        <string>location</string>
+        <string>fetch</string>
+        <string>remote-notification</string>
+    </array>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>festivalconnection</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>

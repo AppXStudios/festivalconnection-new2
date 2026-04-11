@@ -1,0 +1,6 @@
+ios/build/
+android/app/build/
+android/.gradle/
+android/.kotlin/
+.DS_Store
+*.xcuserdata

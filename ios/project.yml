@@ -1,0 +1,45 @@
+name: FestivalConnection
+options:
+  bundleIdPrefix: com.appxstudios
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "16.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    DEVELOPMENT_TEAM: 8G7T852A54
+    CODE_SIGN_STYLE: Automatic
+    INFOPLIST_FILE: FestivalConnection/Resources/Info.plist
+packages:
+  BreezSDKLiquid:
+    url: https://github.com/breez/breez-sdk-liquid-swift.git
+    version: 0.12.2
+targets:
+  FestivalConnection:
+    type: application
+    platform: iOS
+    sources:
+      - path: FestivalConnection
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.appxstudios.festivalconnection
+        MARKETING_VERSION: "1.7.0"
+        CURRENT_PROJECT_VERSION: "10"
+        INFOPLIST_FILE: FestivalConnection/Resources/Info.plist
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        PRODUCT_NAME: FestivalConnection
+    dependencies:
+      - sdk: MultipeerConnectivity.framework
+      - sdk: CoreBluetooth.framework
+      - sdk: AVFoundation.framework
+      - sdk: CoreLocation.framework
+      - sdk: Security.framework
+      - sdk: Network.framework
+      - sdk: UserNotifications.framework
+      - sdk: PhotosUI.framework
+      - package: BreezSDKLiquid
+        product: BreezSDKLiquid
