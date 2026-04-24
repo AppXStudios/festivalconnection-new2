@@ -64,6 +64,7 @@
 		D3E32D5CA0904F56B0EEED71 /* PeerInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5169176AB0BBE6ACA031B1D7 /* PeerInfo.swift */; };
 		D529BC98E68646C627220232 /* MessageTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFF202348916439D5C064AAB /* MessageTypes.swift */; };
 		D5613C5765789687D593713B /* EditProfileSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3FCD02A20C206367AAB42C2 /* EditProfileSheet.swift */; };
+		D707DA06E2D1A67341DA98A9 /* P256K in Frameworks */ = {isa = PBXBuildFile; productRef = 634B795DBD1DAB9FD9820B92 /* P256K */; };
 		D88BD163593D9536AF67CD8C /* PayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66AE66FD97F357063B3EB3AA /* PayView.swift */; };
 		DC2570F3A2D15A88F7E78F83 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BE76176D649BCB8A5CD7667 /* Security.framework */; };
 		DDA9051D9F4A37F91A70D863 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3556AF7E1A42EE4248B6C844 /* ChatMessage.swift */; };
@@ -151,6 +152,7 @@
 				7185C28A4089D4DD6CA8D56E /* UserNotifications.framework in Frameworks */,
 				C3B5403D21CD239F72A15D12 /* PhotosUI.framework in Frameworks */,
 				1C56C34D38127C7CD8278920 /* BreezSDKLiquid in Frameworks */,
+				D707DA06E2D1A67341DA98A9 /* P256K in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -404,6 +406,7 @@
 			name = FestivalConnection;
 			packageProductDependencies = (
 				AF76F49B05B8E43D95684B78 /* BreezSDKLiquid */,
+				634B795DBD1DAB9FD9820B92 /* P256K */,
 			);
 			productName = FestivalConnection;
 			productReference = DCCAF0EBD2695D9A98258356 /* FestivalConnection.app */;
@@ -435,6 +438,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				30E956AEBDBD0E1D6A222DBB /* XCRemoteSwiftPackageReference "breez-sdk-liquid-swift" */,
+				8F7B46719B53C0DA1E21D62F /* XCRemoteSwiftPackageReference "swift-secp256k1" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 51DB01EF450A68A97F9204C6 /* Products */;
@@ -715,9 +719,22 @@
 				version = 0.12.2;
 			};
 		};
+		8F7B46719B53C0DA1E21D62F /* XCRemoteSwiftPackageReference "swift-secp256k1" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/21-DOT-DEV/swift-secp256k1.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.21.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		634B795DBD1DAB9FD9820B92 /* P256K */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8F7B46719B53C0DA1E21D62F /* XCRemoteSwiftPackageReference "swift-secp256k1" */;
+			productName = P256K;
+		};
 		AF76F49B05B8E43D95684B78 /* BreezSDKLiquid */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 30E956AEBDBD0E1D6A222DBB /* XCRemoteSwiftPackageReference "breez-sdk-liquid-swift" */;

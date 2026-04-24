@@ -15,6 +15,9 @@ packages:
   BreezSDKLiquid:
     url: https://github.com/breez/breez-sdk-liquid-swift.git
     version: 0.12.2
+  swift-secp256k1:
+    url: https://github.com/21-DOT-DEV/swift-secp256k1.git
+    exactVersion: 0.21.1
 targets:
   FestivalConnection:
     type: application
@@ -43,3 +46,5 @@ targets:
       - sdk: PhotosUI.framework
       - package: BreezSDKLiquid
         product: BreezSDKLiquid
+      - package: swift-secp256k1
+        product: P256K

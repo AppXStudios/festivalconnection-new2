@@ -64,5 +64,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.bouncycastle:bcprov-jdk15on:1.70")
     implementation("breez_sdk_liquid:bindings-android:0.11.13")
+    // BIP-39 mnemonic generation (https://github.com/Electric-Coin-Company/kotlin-bip39)
+    implementation("cash.z.ecc.android:kotlin-bip39:1.0.8")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

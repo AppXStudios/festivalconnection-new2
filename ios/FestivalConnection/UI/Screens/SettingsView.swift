@@ -5,6 +5,7 @@ import UIKit
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var identityManager: IdentityManager
+    @ObservedObject private var wallet = WalletManager.shared
     @State private var showEditProfile = false
     @State private var showShareSheet = false
     @State private var searchText = ""
@@ -55,7 +56,7 @@ struct SettingsView: View {
                             VStack(spacing: 0) {
                                 Button(action: { showEditProfile = true }) {
                                     HStack(spacing: 16) {
-                                        CircularAvatarView(displayName: nickname, size: 60)
+                                        CircularAvatarView(displayName: nickname, profileImageData: UserDefaults.standard.data(forKey: "fc_profile_picture"), size: 60)
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(nickname)
                                                 .font(.system(size: 17, weight: .semibold))
@@ -63,6 +64,12 @@ struct SettingsView: View {
                                             Text("@\(handle)")
                                                 .font(.system(size: 15))
                                                 .foregroundColor(FestivalTheme.textSecondary)
+                                            if let about = UserDefaults.standard.string(forKey: "fc_about"), !about.isEmpty {
+                                                Text(about)
+                                                    .font(.system(size: 14))
+                                                    .foregroundColor(FestivalTheme.textSecondary)
+                                                    .padding(.top, 2)
+                                            }
                                         }
                                         Spacer()
                                         Image(systemName: "qrcode")
@@ -84,7 +91,7 @@ struct SettingsView: View {
                             // Account section
                             sectionHeader("ACCOUNT")
                             VStack(spacing: 0) {
-                                settingsNavRow(icon: "dollarsign.circle.fill", label: "Wallet", detail: String(format: "$%.2f", WalletManager.shared.balanceUSD), iconColor: FestivalTheme.iconOrange) {
+                                settingsNavRow(icon: "dollarsign.circle.fill", label: "Wallet", detail: String(format: "$%.2f", wallet.balanceUSD), iconColor: FestivalTheme.iconOrange) {
                                     WalletHomeView()
                                 }
                                 Divider().background(FestivalTheme.surfaceMedium)

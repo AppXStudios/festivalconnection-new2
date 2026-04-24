@@ -24,8 +24,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
 import com.appxstudios.festivalconnection.models.ChatMessage
 import com.appxstudios.festivalconnection.mesh.nostr.NostrDM
+import com.appxstudios.festivalconnection.mesh.nostr.NostrEventDispatcher
+import com.appxstudios.festivalconnection.mesh.nostr.NostrFilter
 import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
 import com.appxstudios.festivalconnection.security.NostrIdentity
 import com.appxstudios.festivalconnection.services.WalletManager
@@ -48,6 +52,48 @@ fun ChatScreen(
     var showPaymentDialog by remember { mutableStateOf(false) }
     var paymentAmount by remember { mutableStateOf("") }
     var paymentDescription by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    // Subscribe to incoming NIP-04 DMs for the current user and keep a live feed
+    // of messages from this specific peer. The dispatcher fans out the single
+    // NostrRelayManager.onEvent callback to every screen that cares.
+    LaunchedEffect(peerKey) {
+        val dmFilter = NostrFilter(
+            kinds = listOf(4),
+            since = (System.currentTimeMillis() / 1000) - 86400,
+            pTags = listOf(NostrIdentity.publicKeyHex)
+        )
+        NostrRelayManager.subscribe(dmFilter)
+
+        NostrEventDispatcher.events.collect { event ->
+            if (event.kind == 4 && event.pubkey == peerKey) {
+                val decrypted = NostrDM.decrypt(event.content, event.pubkey)
+                if (decrypted != null) {
+                    messages.add(
+                        ChatMessage(
+                            senderKey = event.pubkey,
+                            recipientKey = NostrIdentity.publicKeyHex,
+                            content = decrypted,
+                            isIncoming = true
+                        )
+                    )
+
+                    // Remember this peer so they show up in the Chats list
+                    val prefs = context.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE)
+                    val existing = prefs.getStringSet("connected_peers", mutableSetOf()) ?: mutableSetOf()
+                    if (!existing.contains(event.pubkey)) {
+                        val updated = existing.toMutableSet().apply { add(event.pubkey) }
+                        val handle = prefs.getString("peer_handle_${event.pubkey}", null)
+                            ?: event.pubkey.take(8).lowercase()
+                        prefs.edit()
+                            .putStringSet("connected_peers", updated)
+                            .putString("peer_handle_${event.pubkey}", handle)
+                            .apply()
+                    }
+                }
+            }
+        }
+    }
 
     if (showPaymentDialog) {
         AlertDialog(

@@ -12,6 +12,7 @@ struct EditProfileSheet: View {
     @State private var showCamera = false
     @State private var showCameraUnavailable = false
     @State private var handleConflict = false
+    @State private var profileImageData: Data? = UserDefaults.standard.data(forKey: "fc_profile_picture")
 
     private let originalHandle: String
 
@@ -48,7 +49,7 @@ struct EditProfileSheet: View {
                     VStack(spacing: 16) {
                         // Avatar
                         ZStack(alignment: .bottomTrailing) {
-                            CircularAvatarView(displayName: displayName, size: 80)
+                            CircularAvatarView(displayName: displayName, profileImageData: profileImageData, size: 80)
 
                             Button(action: { showCameraOptions = true }) {
                                 Circle()
@@ -71,7 +72,10 @@ struct EditProfileSheet: View {
                                     showCameraUnavailable = true
                                 }
                             }
-                            Button("Remove Photo", role: .destructive) { }
+                            Button("Remove Photo", role: .destructive) {
+                                UserDefaults.standard.removeObject(forKey: "fc_profile_picture")
+                                profileImageData = nil
+                            }
                             Button("Cancel", role: .cancel) {}
                         }
 
@@ -170,7 +174,7 @@ struct EditProfileSheet: View {
                 Text("Camera not available on simulator")
             }
             .fullScreenCover(isPresented: $showCamera) {
-                CameraPickerView()
+                CameraPickerView(imageData: $profileImageData)
                     .ignoresSafeArea()
             }
         }
@@ -184,6 +188,10 @@ struct EditProfileSheet: View {
         UserDefaults.standard.set(trimmedHandle, forKey: "fc_handle")
         UserDefaults.standard.set(aboutText, forKey: "fc_about")
         UserDefaults.standard.synchronize()
+
+        // Update IdentityManager so observers of @Published properties react
+        IdentityManager.shared.displayName = trimmedName
+        IdentityManager.shared.handle = trimmedHandle
 
         // Broadcast updated profile via Nostr kind-0 metadata
         let profileJSON: [String: Any] = [
@@ -214,6 +222,7 @@ struct EditProfileSheet: View {
 
 struct CameraPickerView: UIViewControllerRepresentable {
     @Environment(\.dismiss) var dismiss
+    @Binding var imageData: Data?
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
@@ -224,11 +233,15 @@ struct CameraPickerView: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 
-    func makeCoordinator() -> Coordinator { Coordinator(dismiss: dismiss) }
+    func makeCoordinator() -> Coordinator { Coordinator(dismiss: dismiss, imageData: $imageData) }
 
     class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
         let dismiss: DismissAction
-        init(dismiss: DismissAction) { self.dismiss = dismiss }
+        let imageData: Binding<Data?>
+        init(dismiss: DismissAction, imageData: Binding<Data?>) {
+            self.dismiss = dismiss
+            self.imageData = imageData
+        }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             dismiss()
@@ -238,6 +251,7 @@ struct CameraPickerView: UIViewControllerRepresentable {
             if let image = info[.originalImage] as? UIImage,
                let data = image.jpegData(compressionQuality: 0.8) {
                 UserDefaults.standard.set(data, forKey: "fc_profile_picture")
+                imageData.wrappedValue = data
             }
             dismiss()
         }

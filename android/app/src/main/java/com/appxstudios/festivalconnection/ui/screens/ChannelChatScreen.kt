@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.appxstudios.festivalconnection.models.ChannelMessage
 import com.appxstudios.festivalconnection.mesh.nostr.NostrChannels
+import com.appxstudios.festivalconnection.mesh.nostr.NostrEventDispatcher
 import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
 import com.appxstudios.festivalconnection.security.NostrIdentity
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
@@ -38,6 +39,35 @@ fun ChannelChatScreen(
     val messages = remember { mutableStateListOf<ChannelMessage>() }
     val relayCount by NostrRelayManager.connectedRelayCount.collectAsState()
     val myKey = remember { NostrIdentity.publicKeyHex }
+
+    // Subscribe to this channel's NIP-28 kind-42 messages and stream them in.
+    LaunchedEffect(channelId) {
+        NostrRelayManager.subscribe(NostrChannels.channelMessageFilter(channelId))
+
+        NostrEventDispatcher.events.collect { event ->
+            if (event.kind != 42) return@collect
+            // Only include messages whose e-tag root points at this channel
+            val hasChannelRoot = event.tags.any { tag ->
+                tag.size >= 2 && tag[0] == "e" && tag[1] == channelId
+            }
+            if (!hasChannelRoot) return@collect
+            if (event.pubkey == myKey) return@collect  // skip our own echo
+
+            // Avoid duplicates if the relay resends
+            if (messages.any { it.id == event.id }) return@collect
+
+            messages.add(
+                ChannelMessage(
+                    id = event.id,
+                    channelId = channelId,
+                    senderPublicKeyHex = event.pubkey,
+                    senderDisplayName = event.pubkey.take(8),
+                    content = event.content,
+                    timestamp = event.createdAt * 1000
+                )
+            )
+        }
+    }
 
     Column(
         modifier = Modifier

@@ -1,5 +1,6 @@
 package com.appxstudios.festivalconnection
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,7 +21,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.appxstudios.festivalconnection.mesh.ble.BLEMeshService
+import com.appxstudios.festivalconnection.mesh.nostr.NostrEventDispatcher
 import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
+import com.appxstudios.festivalconnection.mesh.shared.PacketProcessor
+import com.appxstudios.festivalconnection.security.IdentityManager
+import com.appxstudios.festivalconnection.security.NostrIdentity
 import com.appxstudios.festivalconnection.services.PermissionsManager
 import com.appxstudios.festivalconnection.services.WalletManager
 import com.appxstudios.festivalconnection.ui.screens.*
@@ -31,19 +37,91 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private var bleService: BLEMeshService? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize identity FIRST (NostrIdentity + Ed25519 IdentityManager)
+        // NostrIdentity must be initialized before NostrRelayManager.connect so that
+        // all published events have a valid pubkey.
+        NostrIdentity.initialize(this)
+        IdentityManager.initialize(this)
 
         // Initialize backends
         PermissionsManager.initialize(this)
         NostrRelayManager.connect()
+        // Install central dispatcher so multiple screens can observe incoming events
+        NostrEventDispatcher.install()
         WalletManager.connect(this)
+
+        // Instantiate BLE mesh transport (CrowdSync BLE layer)
+        val appContext = applicationContext
+        val prefs = appContext.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE)
+        val nickname = prefs.getString("fc_nickname", null) ?: IdentityManager.defaultDisplayName
+        val ble = BLEMeshService(this).apply {
+            configure(IdentityManager.peerID(), nickname)
+            onPacketReceived = { data ->
+                PacketProcessor.receive(data, PacketProcessor.TransportType.BLE)
+            }
+            onPeerDiscovered = { peerHex, peerNickname ->
+                val p = appContext.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE)
+                val existing = p.getStringSet("connected_peers", mutableSetOf()) ?: mutableSetOf()
+                if (!existing.contains(peerHex)) {
+                    val updated = existing.toMutableSet().apply { add(peerHex) }
+                    p.edit()
+                        .putStringSet("connected_peers", updated)
+                        .putString("peer_handle_$peerHex", peerNickname)
+                        .apply()
+                }
+            }
+            start()
+        }
+        bleService = ble
+
+        // Wire PacketProcessor callbacks to persistence
+        // When a mesh-layer message arrives, record the sender in "connected_peers" so the
+        // Chats screen shows them even if they were never QR-scanned.
+        PacketProcessor.onMessage = { senderHex, _, _ ->
+            val p = appContext.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE)
+            val existing = p.getStringSet("connected_peers", mutableSetOf()) ?: mutableSetOf()
+            if (!existing.contains(senderHex)) {
+                val updated = existing.toMutableSet().apply { add(senderHex) }
+                val handle = p.getString("peer_handle_$senderHex", null)
+                    ?: senderHex.take(8).lowercase()
+                p.edit()
+                    .putStringSet("connected_peers", updated)
+                    .putString("peer_handle_$senderHex", handle)
+                    .apply()
+            }
+        }
+        PacketProcessor.onAnnounce = { peerHex, peerNickname ->
+            val p = appContext.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE)
+            val existing = p.getStringSet("connected_peers", mutableSetOf()) ?: mutableSetOf()
+            val updated = existing.toMutableSet().apply { add(peerHex) }
+            p.edit()
+                .putStringSet("connected_peers", updated)
+                .putString("peer_handle_$peerHex", peerNickname)
+                .apply()
+        }
+        PacketProcessor.onPaymentNotification = { _, _, _ ->
+            // Refresh wallet on incoming payment notification
+            CoroutineScope(Dispatchers.IO).launch {
+                WalletManager.refreshBalance()
+                WalletManager.refreshTransactions()
+            }
+        }
 
         setContent {
             FestivalConnectionTheme {
                 MainTabsScreen()
             }
         }
+    }
+
+    override fun onDestroy() {
+        bleService?.stop()
+        super.onDestroy()
     }
 }
 

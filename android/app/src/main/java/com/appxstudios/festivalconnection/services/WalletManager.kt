@@ -194,12 +194,17 @@ object WalletManager : EventListener {
     private fun getOrCreateMnemonic(context: Context): String {
         val prefs = getEncryptedPrefs(context)
         val existing = prefs.getString("wallet_mnemonic", null)
-        if (existing != null) return existing
+        // Guard: old versions stored raw hex (64 chars, no spaces). Treat those as invalid and regenerate.
+        if (existing != null && existing.trim().split(" ").size in 12..24) {
+            return existing
+        }
 
-        // Generate random entropy as hex (used as mnemonic fallback)
-        val bytes = ByteArray(32)
-        SecureRandom().nextBytes(bytes)
-        val mnemonic = bytes.joinToString("") { "%02x".format(it) }
+        // Generate real BIP-39 12-word mnemonic (128 bits of entropy)
+        // Uses https://github.com/Electric-Coin-Company/kotlin-bip39 — accepted by Breez SDK Liquid
+        val code = cash.z.ecc.android.bip39.Mnemonics.MnemonicCode(
+            cash.z.ecc.android.bip39.Mnemonics.WordCount.COUNT_12
+        )
+        val mnemonic = String(code.chars)
         prefs.edit().putString("wallet_mnemonic", mnemonic).apply()
         return mnemonic
     }

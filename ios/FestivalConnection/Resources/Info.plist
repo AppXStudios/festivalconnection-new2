@@ -27,10 +27,6 @@
         <key>UIColorName</key>
         <string>AccentColor</string>
     </dict>
-    <key>UIRequiredDeviceCapabilities</key>
-    <array>
-        <string>armv7</string>
-    </array>
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
@@ -48,6 +44,11 @@
     <string>Festival Connection uses Bluetooth in the background to keep CrowdSync™ connections active so you never miss a message.</string>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Festival Connection uses your local network to extend CrowdSync™ connections over Wi-Fi between nearby iPhones.</string>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_fc-mesh._tcp</string>
+        <string>_fc-mesh._udp</string>
+    </array>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>Festival Connection uses your location to find nearby channels and connect you with people at the same venue through CrowdSync™.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

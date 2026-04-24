@@ -1,4 +1,5 @@
 import SwiftUI
+import MultipeerConnectivity
 
 struct RootView: View {
     @EnvironmentObject var permissionsManager: PermissionsManager
@@ -76,6 +77,26 @@ struct RootView: View {
         MultipeerTransportManager.shared.onDataReceived = { data, _ in
             PacketProcessor.shared.receive(data: data, fromTransport: .multipeer)
         }
+        MultipeerTransportManager.shared.onPeerConnected = { peerID in
+            Task { @MainActor in
+                // MCPeerID.displayName is formatted as "<nickname>_<fingerprint-prefix-8>"
+                let name = peerID.displayName
+                let components = name.split(separator: "_")
+                let fingerprint = components.last.map(String.init) ?? name
+                let nickname = components.count > 1
+                    ? components.dropLast().joined(separator: "_")
+                    : name
+                let peer = PeerInfo(publicKeyHex: fingerprint, displayName: nickname, handle: fingerprint, lastSeen: Date())
+                appState.updatePeer(peer)
+            }
+        }
+        MultipeerTransportManager.shared.onPeerDisconnected = { peerID in
+            Task { @MainActor in
+                let name = peerID.displayName
+                let fingerprint = name.split(separator: "_").last.map(String.init) ?? name
+                appState.removePeer(fingerprint)
+            }
+        }
         MultipeerTransportManager.shared.start()
 
         // 5. Wire PacketProcessor callbacks to AppState
@@ -89,6 +110,25 @@ struct RootView: View {
             Task { @MainActor in
                 let msg = ChatMessage(senderKey: senderHex, recipientKey: "", content: content, isIncoming: true)
                 appState.addMessage(msg, forPeer: senderHex)
+            }
+        }
+        PacketProcessor.shared.onLeave = { peerHex in
+            Task { @MainActor in appState.removePeer(peerHex) }
+        }
+        PacketProcessor.shared.onPaymentRequest = { senderHex, amount, invoice, description in
+            Task { @MainActor in
+                var msg = ChatMessage(senderKey: senderHex, recipientKey: "", content: "", isIncoming: true, messageType: 0x10)
+                msg.paymentAmount = amount
+                msg.paymentInvoice = invoice
+                msg.paymentDescription = description
+                appState.addMessage(msg, forPeer: senderHex)
+            }
+        }
+        PacketProcessor.shared.onPaymentNotification = { _, _, _ in
+            Task { @MainActor in
+                // Refresh wallet balance on incoming payment notification
+                WalletManager.shared.refreshBalance()
+                WalletManager.shared.refreshTransactions()
             }
         }
     }

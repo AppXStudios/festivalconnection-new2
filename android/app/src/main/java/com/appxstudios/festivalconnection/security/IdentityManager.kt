@@ -53,11 +53,34 @@ object IdentityManager {
         val storedPublic = prefs?.getString(KEY_PUBLIC, null)
 
         if (storedPrivate != null && storedPublic != null) {
-            // Restore existing keypair
+            // Restore existing keypair from stored bytes
             val privBytes = hexToBytes(storedPrivate)
             val pubBytes = hexToBytes(storedPublic)
-            publicKeyHex = storedPublic
-            fingerprint = sha256Hex(pubBytes)
+
+            try {
+                val keyFactory = java.security.KeyFactory.getInstance("Ed25519")
+                val privKeySpec = java.security.spec.PKCS8EncodedKeySpec(privBytes)
+                val pubKeySpec = java.security.spec.X509EncodedKeySpec(pubBytes)
+                val privateKey = keyFactory.generatePrivate(privKeySpec)
+                val publicKey = keyFactory.generatePublic(pubKeySpec)
+                keyPair = KeyPair(publicKey, privateKey)
+
+                publicKeyHex = storedPublic
+                fingerprint = sha256Hex(pubBytes)
+            } catch (e: Exception) {
+                // Stored keys are corrupt or format incompatible — regenerate
+                val kpg = KeyPairGenerator.getInstance("Ed25519")
+                keyPair = kpg.generateKeyPair()
+                val pubBytes2 = keyPair!!.public.encoded
+                val privBytes2 = keyPair!!.private.encoded
+                publicKeyHex = bytesToHex(pubBytes2)
+                fingerprint = sha256Hex(pubBytes2)
+
+                prefs?.edit()
+                    ?.putString(KEY_PRIVATE, bytesToHex(privBytes2))
+                    ?.putString(KEY_PUBLIC, publicKeyHex)
+                    ?.apply()
+            }
         } else {
             // Generate new Ed25519 keypair
             val kpg = KeyPairGenerator.getInstance("Ed25519")

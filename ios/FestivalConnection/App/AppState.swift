@@ -50,6 +50,19 @@ final class AppState: ObservableObject {
         feedFilter.limit = 50
         nearbyFeedSubId = relay.subscribe(filter: feedFilter)
 
+        // Subscribe to encrypted DMs (kind-4) addressed to us
+        var dmFilter = NostrFilter()
+        dmFilter.kinds = [4]
+        dmFilter.since = Int64(Date().timeIntervalSince1970) - 86400
+        dmFilter.pTags = [NostrIdentity.shared.publicKeyHex]
+        _ = relay.subscribe(filter: dmFilter)
+
+        // Subscribe to profile metadata (kind-0) for peers we see
+        var metadataFilter = NostrFilter()
+        metadataFilter.kinds = [0]
+        metadataFilter.since = Int64(Date().timeIntervalSince1970) - 86400
+        _ = relay.subscribe(filter: metadataFilter)
+
         // Track relay connection
         Task {
             while true {

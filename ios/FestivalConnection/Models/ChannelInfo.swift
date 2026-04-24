@@ -11,7 +11,7 @@ struct ChannelInfo: Identifiable, Equatable {
     var lastMessageSenderName: String = ""
     var lastMessageTimestamp: Date? = nil
     var unreadCount: Int = 0
-    var isGeofenced: Bool = true
+    var isGeofenced: Bool = false
     var channelDescription: String = ""
     var createdAt: Date = Date()
     var isVerified: Bool = false
