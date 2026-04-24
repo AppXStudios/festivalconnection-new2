@@ -107,10 +107,20 @@ struct ChatView: View {
         }
 
         // Send via mesh (BLE + Multipeer) through PacketProcessor
+        let recipientHexPrefix = String(peerKey.prefix(16))
+        var recipientID = Data()
+        var rIdx = recipientHexPrefix.startIndex
+        while rIdx < recipientHexPrefix.endIndex {
+            let next = recipientHexPrefix.index(rIdx, offsetBy: 2, limitedBy: recipientHexPrefix.endIndex) ?? recipientHexPrefix.endIndex
+            if let byte = UInt8(recipientHexPrefix[rIdx..<next], radix: 16) {
+                recipientID.append(byte)
+            }
+            rIdx = next
+        }
         PacketProcessor.shared.sendMessage(
             content: trimmed,
             senderID: IdentityManager.shared.peerID(),
-            recipientID: Data(peerKey.prefix(16).compactMap { c -> UInt8? in UInt8(String(c), radix: 16) })
+            recipientID: recipientID
         )
 
         messageText = ""

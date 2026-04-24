@@ -67,10 +67,14 @@ fun ChatScreen(
 
         NostrEventDispatcher.events.collect { event ->
             if (event.kind == 4 && event.pubkey == peerKey) {
+                // Avoid duplicates if the relay resends the same event
+                if (messages.any { it.id == event.id }) return@collect
+
                 val decrypted = NostrDM.decrypt(event.content, event.pubkey)
                 if (decrypted != null) {
                     messages.add(
                         ChatMessage(
+                            id = event.id,
                             senderKey = event.pubkey,
                             recipientKey = NostrIdentity.publicKeyHex,
                             content = decrypted,

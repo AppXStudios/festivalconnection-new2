@@ -46,10 +46,11 @@ enum RelayMessage {
             return .event(subscriptionId: subId, event: event)
 
         case "OK":
-            guard array.count >= 4,
+            // Per NIP-01, the reason is optional. Some relays send 3-element OK messages.
+            guard array.count >= 3,
                   let eventId = array[1] as? String,
                   let accepted = array[2] as? Bool else { return nil }
-            let message = (array.count > 3 ? array[3] as? String : nil) ?? ""
+            let message = (array.count >= 4 ? array[3] as? String : nil) ?? ""
             return .ok(eventId: eventId, accepted: accepted, message: message)
 
         case "EOSE":

@@ -24,6 +24,12 @@ enum NostrBech32 {
 
         guard values.count >= 6 else { return nil }
         let payload = Array(values.dropLast(6))
+        let checksum = Array(values.suffix(6))
+
+        // Verify the 6-symbol Bech32 checksum: createChecksum(hrp, payload) must equal the trailing 6 symbols.
+        let expectedChecksum = createChecksum(hrp: hrp, values: payload)
+        guard checksum == expectedChecksum else { return nil }
+
         let converted = convertBits(data: payload, fromBits: 5, toBits: 8, pad: false)
         return (hrp, Data(converted))
     }

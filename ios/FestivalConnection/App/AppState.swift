@@ -20,6 +20,7 @@ final class AppState: ObservableObject {
     private var channelDiscoverySubId: String?
     private var nearbyFeedSubId: String?
     private var channelSubIds: [String: String] = [:] // channelId -> subscriptionId
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Nostr Relay Lifecycle
 
@@ -63,13 +64,13 @@ final class AppState: ObservableObject {
         metadataFilter.since = Int64(Date().timeIntervalSince1970) - 86400
         _ = relay.subscribe(filter: metadataFilter)
 
-        // Track relay connection
-        Task {
-            while true {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                relayConnected = NostrRelayManager.shared.connectedRelayCount > 0
+        // Track relay connection via Combine binding to NostrRelayManager
+        NostrRelayManager.shared.$connectedRelayCount
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] count in
+                self?.relayConnected = count > 0
             }
-        }
+            .store(in: &cancellables)
     }
 
     func subscribeToChannelMessages(_ channelId: String) {

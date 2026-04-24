@@ -173,8 +173,8 @@ final class NostrRelayManager: ObservableObject {
             eventCache.insert(event.id)
             eventCacheTimestamps[event.id] = Date()
 
-            // Verify ID
-            guard event.verifyId() else { return }
+            // Verify ID + Schnorr signature (NIP-01)
+            guard event.verifyId(), event.verifySignature() else { return }
 
             // Route by kind
             onEvent?(event)

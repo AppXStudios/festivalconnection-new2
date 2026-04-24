@@ -20,10 +20,10 @@ final class WalletManager: ObservableObject {
     func connect() {
         guard sdk == nil else { return }
         do {
-            let seed = getOrCreateSeed()
+            let mnemonic = getOrCreateMnemonic()
             var config = try defaultConfig(network: LiquidNetwork.mainnet, breezApiKey: "MIIBeTCCASugAwIBAgIHPxUDqQ19mTAFBgMrZXAwEDEOMAwGA1UEAxMFQnJlZXowHhcNMjYwNDA3MjMwMTM5WhcNMzYwNDA0MjMwMTM5WjAvMRQwEgYDVQQKEwtBUFBYU3R1ZGlvczEXMBUGA1UEAxMOQWJyYWhhbSBWYXJnYXMwKjAFBgMrZXADIQDQg")
             config.workingDir = walletDirectory()
-            let req = ConnectRequest(config: config, seed: seed)
+            let req = ConnectRequest(config: config, mnemonic: mnemonic)
             sdk = try BreezSDKLiquid.connect(req: req)
             isConnected = true
             connectionError = nil
@@ -189,18 +189,20 @@ final class WalletManager: ObservableObject {
 
     // MARK: - Mnemonic Management
 
-    private func getOrCreateSeed() -> [UInt8] {
-        if let existing = loadSeedFromKeychain() {
+    /// Returns a BIP-39 mnemonic string, generating + persisting one on first run.
+    /// Old raw-byte "seeds" stored under this same Keychain account are intentionally
+    /// not migrated — they were never valid BIP-39 phrases, so any funds attached
+    /// would have been unrecoverable cross-device anyway.
+    private func getOrCreateMnemonic() -> String {
+        if let existing = loadMnemonicFromKeychain(), BIP39.isValidMnemonic(existing) {
             return existing
         }
-        // Generate 64 bytes of cryptographically secure random seed
-        var bytes = Data(count: 64)
-        let _ = bytes.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 64, $0.baseAddress!) }
-        saveSeedToKeychain(bytes)
-        return [UInt8](bytes)
+        let mnemonic = BIP39.generate12WordMnemonic()
+        saveMnemonicToKeychain(mnemonic)
+        return mnemonic
     }
 
-    private func saveSeedToKeychain(_ seed: Data) {
+    private func saveMnemonicToKeychain(_ mnemonic: String) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: keychainAccount,
@@ -209,11 +211,11 @@ final class WalletManager: ObservableObject {
         ]
         SecItemDelete(query as CFDictionary)
         var addQuery = query
-        addQuery[kSecValueData as String] = seed
+        addQuery[kSecValueData as String] = Data(mnemonic.utf8)
         SecItemAdd(addQuery as CFDictionary, nil)
     }
 
-    private func loadSeedFromKeychain() -> [UInt8]? {
+    private func loadMnemonicFromKeychain() -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: keychainAccount,
@@ -223,8 +225,9 @@ final class WalletManager: ObservableObject {
         ]
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let data = result as? Data, data.count == 64 else { return nil }
-        return [UInt8](data)
+        guard status == errSecSuccess, let data = result as? Data,
+              let str = String(data: data, encoding: .utf8) else { return nil }
+        return str
     }
 
     private func walletDirectory() -> String {

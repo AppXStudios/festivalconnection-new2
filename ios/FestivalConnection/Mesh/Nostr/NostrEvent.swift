@@ -1,5 +1,6 @@
 import Foundation
 import CryptoKit
+import P256K
 
 struct NostrEvent: Codable, Identifiable, Equatable {
     let id: String
@@ -20,19 +21,30 @@ struct NostrEvent: Codable, Identifiable, Equatable {
         lhs.id == rhs.id
     }
 
-    /// Serialize for ID computation per NIP-01
-    static func serialize(pubkey: String, createdAt: Int64, kind: Int, tags: [[String]], content: String) -> String {
-        let tagsJSON = tags.map { tag in
-            "[" + tag.map { "\"\(escapeJSON($0))\"" }.joined(separator: ",") + "]"
+    /// Serialize for ID computation per NIP-01: [0, pubkey, created_at, kind, tags, content]
+    /// Uses JSONSerialization with withoutEscapingSlashes for spec-compliant encoding,
+    /// including \b, \f, \u00XX control characters, and proper UTF-8 handling.
+    static func serializedData(pubkey: String, createdAt: Int64, kind: Int, tags: [[String]], content: String) -> Data {
+        let serialized: [Any] = [
+            0,
+            pubkey,
+            createdAt,
+            kind,
+            tags,
+            content
+        ]
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: serialized,
+            options: [.withoutEscapingSlashes]
+        ) else {
+            return Data()
         }
-        let tagsStr = "[" + tagsJSON.joined(separator: ",") + "]"
-        return "[0,\"\(pubkey)\",\(createdAt),\(kind),\(tagsStr),\"\(escapeJSON(content))\"]"
+        return data
     }
 
-    /// Compute event ID as SHA-256 of serialized event
+    /// Compute event ID as SHA-256 hex of the canonically serialized event.
     static func computeId(pubkey: String, createdAt: Int64, kind: Int, tags: [[String]], content: String) -> String {
-        let serialized = serialize(pubkey: pubkey, createdAt: createdAt, kind: kind, tags: tags, content: content)
-        let data = Data(serialized.utf8)
+        let data = serializedData(pubkey: pubkey, createdAt: createdAt, kind: kind, tags: tags, content: content)
         let hash = SHA256.hash(data: data)
         return hash.compactMap { String(format: "%02x", $0) }.joined()
     }
@@ -64,27 +76,34 @@ struct NostrEvent: Codable, Identifiable, Equatable {
         return computed == id
     }
 
+    /// Verify the BIP-340 Schnorr signature against the event ID and pubkey.
+    /// Returns false if signature is missing, malformed, or does not validate.
+    func verifySignature() -> Bool {
+        guard let sigData = NostrEvent.hexToData(sig),
+              sigData.count == 64,
+              let pubData = NostrEvent.hexToData(pubkey),
+              pubData.count == 32,
+              let idData = NostrEvent.hexToData(id),
+              idData.count == 32 else {
+            return false
+        }
+
+        // The Nostr event ID IS the SHA-256 message hash that was Schnorr-signed.
+        guard let signature = try? P256K.Schnorr.SchnorrSignature(dataRepresentation: sigData) else {
+            return false
+        }
+
+        var messageBytes = [UInt8](idData)
+        let xonly = P256K.Schnorr.XonlyKey(dataRepresentation: pubData)
+        return xonly.isValid(signature, for: &messageBytes)
+    }
+
     /// Convert to JSON for sending
     func toJSON() -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = []
         guard let data = try? encoder.encode(self) else { return "{}" }
         return String(data: data, encoding: .utf8) ?? "{}"
-    }
-
-    private static func escapeJSON(_ str: String) -> String {
-        var result = ""
-        for char in str {
-            switch char {
-            case "\"": result += "\\\""
-            case "\\": result += "\\\\"
-            case "\n": result += "\\n"
-            case "\r": result += "\\r"
-            case "\t": result += "\\t"
-            default: result.append(char)
-            }
-        }
-        return result
     }
 
     private static func hexToData(_ hex: String) -> Data? {

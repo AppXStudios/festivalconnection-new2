@@ -65,7 +65,13 @@ final class NostrIdentity: ObservableObject {
 
     /// NIP-04 shared secret: secp256k1 ECDH, returning only the 32-byte x-coordinate
     /// (used directly as the AES-256 key per NIP-04).
-    func computeSharedSecret(withPublicKey pubkeyHex: String) -> Data? {
+    ///
+    /// Nostr pubkeys are x-only (32 bytes), but ECDH needs a compressed (33-byte) point.
+    /// Each X has TWO possible Y parities (0x02 even / 0x03 odd) and they produce DIFFERENT
+    /// shared secrets. The caller must try BOTH and accept the one that produces a valid
+    /// decryption — only one will match the sender's.
+    /// - Parameter parityByte: 0x02 (even) or 0x03 (odd). Ignored when pubkey is already 33 bytes.
+    func computeSharedSecret(withPublicKey pubkeyHex: String, parityByte: UInt8) -> Data? {
         guard let privKey = privateKeyBytes,
               let pubKeyData = hexToData(pubkeyHex) else { return nil }
 
@@ -74,36 +80,43 @@ final class NostrIdentity: ObservableObject {
             return nil
         }
 
-        // Nostr pubkeys are x-only (32 bytes). ECDH needs a compressed (33-byte) point,
-        // so we try both Y parities (0x02 then 0x03).
-        let candidatePoints: [Data]
+        let point: Data
         if pubKeyData.count == 32 {
-            candidatePoints = [Data([0x02]) + pubKeyData, Data([0x03]) + pubKeyData]
+            point = Data([parityByte]) + pubKeyData
         } else if pubKeyData.count == 33 {
-            candidatePoints = [pubKeyData]
+            point = pubKeyData
         } else {
             return nil
         }
 
-        for point in candidatePoints {
-            guard let keyAgreementPublic = try? P256K.KeyAgreement.PublicKey(
-                dataRepresentation: point,
-                format: .compressed
-            ) else { continue }
+        guard let keyAgreementPublic = try? P256K.KeyAgreement.PublicKey(
+            dataRepresentation: point,
+            format: .compressed
+        ) else { return nil }
 
-            guard let sharedSecret = try? keyAgreementPrivate.sharedSecretFromKeyAgreement(
-                with: keyAgreementPublic,
-                format: .compressed
-            ) else { continue }
+        guard let sharedSecret = try? keyAgreementPrivate.sharedSecretFromKeyAgreement(
+            with: keyAgreementPublic,
+            format: .compressed
+        ) else { return nil }
 
-            // Compressed output = [parity byte (0x02/0x03)] || [32-byte x-coord].
-            // NIP-04 uses just the x-coordinate as the AES-256 key.
-            let bytes = sharedSecret.withUnsafeBytes { Data($0) }
-            guard bytes.count == 33 else { continue }
-            return bytes.suffix(32)
+        // Compressed output = [parity byte (0x02/0x03)] || [32-byte x-coord].
+        // NIP-04 uses just the x-coordinate as the AES-256 key.
+        let bytes = sharedSecret.withUnsafeBytes { Data($0) }
+        guard bytes.count == 33 else { return nil }
+        return bytes.suffix(32)
+    }
+
+    /// Returns both candidate NIP-04 shared secrets [evenY (0x02), oddY (0x03)] for x-only pubkeys.
+    /// Caller should try decryption with each and accept the one that yields valid UTF-8.
+    func computeSharedSecretsBothParities(withPublicKey pubkeyHex: String) -> [Data] {
+        var results: [Data] = []
+        if let even = computeSharedSecret(withPublicKey: pubkeyHex, parityByte: 0x02) {
+            results.append(even)
         }
-
-        return nil
+        if let odd = computeSharedSecret(withPublicKey: pubkeyHex, parityByte: 0x03) {
+            results.append(odd)
+        }
+        return results
     }
 
     // MARK: - Keychain

@@ -5,6 +5,7 @@ import android.bluetooth.*
 import android.bluetooth.le.*
 import android.content.Context
 import android.os.ParcelUuid
+import com.appxstudios.festivalconnection.BuildConfig
 import com.appxstudios.festivalconnection.protocol.CrowdSyncBinaryProtocol
 import com.appxstudios.festivalconnection.protocol.CrowdSyncPacket
 import com.appxstudios.festivalconnection.protocol.MessageType
@@ -19,8 +20,14 @@ import java.util.concurrent.ConcurrentHashMap
 class BLEMeshService(private val context: Context) {
 
     companion object {
-        // Exact BitChat UUIDs for cross-platform compatibility
-        val SERVICE_UUID: UUID = UUID.fromString("F47B5E2D-4A9E-4C5A-9B3F-8E1D2C3A4B5C")
+        // Exact BitChat UUIDs for cross-platform compatibility.
+        // Debug builds use a separate UUID so debug installs don't see release peers
+        // and vice versa — this matches iOS BLEService.swift which does the same.
+        val SERVICE_UUID: UUID = if (BuildConfig.DEBUG) {
+            UUID.fromString("F47B5E2D-4A9E-4C5A-9B3F-8E1D2C3A4B5A")
+        } else {
+            UUID.fromString("F47B5E2D-4A9E-4C5A-9B3F-8E1D2C3A4B5C")
+        }
         val CHARACTERISTIC_UUID: UUID = UUID.fromString("A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D")
         val CCCD_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
         const val MESSAGE_TTL: Byte = 7

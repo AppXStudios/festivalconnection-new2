@@ -3,10 +3,14 @@ import CryptoKit
 import CommonCrypto
 
 enum NostrDM {
-    /// Encrypt content per NIP-04
+    /// Encrypt content per NIP-04. Outgoing messages always use even-Y (0x02) parity
+    /// for deterministic behaviour; the recipient will try both parities on decrypt.
     @MainActor
     static func encrypt(content: String, recipientPubkeyHex: String) -> String? {
-        guard let sharedSecret = NostrIdentity.shared.computeSharedSecret(withPublicKey: recipientPubkeyHex) else { return nil }
+        guard let sharedSecret = NostrIdentity.shared.computeSharedSecret(
+            withPublicKey: recipientPubkeyHex,
+            parityByte: 0x02
+        ) else { return nil }
 
         let contentData = Data(content.utf8)
 
@@ -24,7 +28,9 @@ enum NostrDM {
         return "\(ciphertextB64)?iv=\(ivB64)"
     }
 
-    /// Decrypt content per NIP-04
+    /// Decrypt content per NIP-04. Tries both Y parities (0x02 even, 0x03 odd) and returns
+    /// the first one that produces valid UTF-8 plaintext, since x-only pubkeys are ambiguous
+    /// and only one parity matches the sender's actual key.
     @MainActor
     static func decrypt(encryptedContent: String, senderPubkeyHex: String) -> String? {
         let parts = encryptedContent.components(separatedBy: "?iv=")
@@ -32,11 +38,18 @@ enum NostrDM {
               let ciphertext = Data(base64Encoded: parts[0]),
               let iv = Data(base64Encoded: parts[1]) else { return nil }
 
-        guard let sharedSecret = NostrIdentity.shared.computeSharedSecret(withPublicKey: senderPubkeyHex) else { return nil }
+        let candidateSecrets = NostrIdentity.shared.computeSharedSecretsBothParities(
+            withPublicKey: senderPubkeyHex
+        )
+        guard !candidateSecrets.isEmpty else { return nil }
 
-        guard let decrypted = aes256CBCDecrypt(data: ciphertext, key: sharedSecret, iv: iv) else { return nil }
-
-        return String(data: decrypted, encoding: .utf8)
+        for secret in candidateSecrets {
+            guard let decrypted = aes256CBCDecrypt(data: ciphertext, key: secret, iv: iv) else { continue }
+            if let text = String(data: decrypted, encoding: .utf8) {
+                return text
+            }
+        }
+        return nil
     }
 
     /// Create a kind-4 encrypted DM event

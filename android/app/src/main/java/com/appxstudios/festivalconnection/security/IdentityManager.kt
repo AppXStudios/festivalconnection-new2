@@ -3,7 +3,7 @@ package com.appxstudios.festivalconnection.security
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
+import androidx.security.crypto.MasterKey
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.MessageDigest
@@ -42,12 +42,7 @@ object IdentityManager {
     fun initialize(context: Context) {
         if (isInitialized) return
 
-        val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-        prefs = EncryptedSharedPreferences.create(
-            PREFS_FILE, masterKey, context,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+        prefs = getEncryptedPrefs(context)
 
         val storedPrivate = prefs?.getString(KEY_PRIVATE, null)
         val storedPublic = prefs?.getString(KEY_PUBLIC, null)
@@ -133,6 +128,19 @@ object IdentityManager {
         } catch (e: Exception) {
             false
         }
+    }
+
+    private fun getEncryptedPrefs(context: Context): SharedPreferences {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        return EncryptedSharedPreferences.create(
+            context,
+            PREFS_FILE,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
     }
 
     private fun sha256Hex(data: ByteArray): String {

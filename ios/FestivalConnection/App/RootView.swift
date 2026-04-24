@@ -48,9 +48,16 @@ struct RootView: View {
         WalletManager.shared.connect()
 
         // 3. BLE mesh transport
-        let peerIDData = Data(identityManager.publicKeyHex.prefix(16).compactMap { c -> UInt8? in
-            UInt8(String(c), radix: 16)
-        })
+        let hexPrefix = String(identityManager.publicKeyHex.prefix(16))
+        var peerIDData = Data()
+        var idx = hexPrefix.startIndex
+        while idx < hexPrefix.endIndex {
+            let next = hexPrefix.index(idx, offsetBy: 2, limitedBy: hexPrefix.endIndex) ?? hexPrefix.endIndex
+            if let byte = UInt8(hexPrefix[idx..<next], radix: 16) {
+                peerIDData.append(byte)
+            }
+            idx = next
+        }
         BLEService.shared.configure(
             peerIDData: peerIDData,
             nickname: UserDefaults.standard.string(forKey: "fc_nickname") ?? identityManager.displayName
