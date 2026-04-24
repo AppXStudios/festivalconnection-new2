@@ -28,9 +28,6 @@ import com.appxstudios.festivalconnection.models.ChatMessage
 import com.appxstudios.festivalconnection.mesh.nostr.NostrDM
 import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
 import com.appxstudios.festivalconnection.security.NostrIdentity
-import com.appxstudios.festivalconnection.protocol.CrowdSyncBinaryProtocol
-import com.appxstudios.festivalconnection.protocol.CrowdSyncPacket
-import com.appxstudios.festivalconnection.protocol.MessageType
 import com.appxstudios.festivalconnection.services.WalletManager
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
 import com.appxstudios.festivalconnection.ui.theme.*
@@ -171,20 +168,7 @@ fun ChatScreen(
                         val dmEvent = NostrDM.createDirectMessage(peerKey, text)
                         dmEvent?.let { NostrRelayManager.publishEvent(it) }
 
-                        // Send via mesh broadcast
-                        val senderBytes = NostrIdentity.hexToBytes(NostrIdentity.publicKeyHex)?.take(8)?.toByteArray() ?: ByteArray(8)
-                        val recipientBytes = NostrIdentity.hexToBytes(peerKey)?.take(8)?.toByteArray() ?: ByteArray(8)
-                        val meshPacket = CrowdSyncPacket(
-                            type = MessageType.MESSAGE.value,
-                            senderID = senderBytes,
-                            recipientID = recipientBytes,
-                            payload = text.toByteArray(Charsets.UTF_8)
-                        )
-                        CrowdSyncBinaryProtocol.encode(meshPacket)?.let { encoded ->
-                            com.appxstudios.festivalconnection.mesh.shared.PacketProcessor.receive(
-                                encoded, com.appxstudios.festivalconnection.mesh.shared.PacketProcessor.TransportType.BLE
-                            )
-                        }
+                        // Network delivery is handled by the NostrDM publish above
                     }
                 },
                 onPayment = { showPaymentDialog = true }
@@ -340,12 +324,11 @@ private fun ReceivedMessageBubble(msg: ChatMessage) {
 private fun PaymentRequestBubble(
     msg: ChatMessage,
     onPayNow: () -> Unit = {
-        // Default: initiate payment via WalletManager
-        msg.paymentAmount?.let { amount ->
+        // Pay the incoming payment request using its invoice
+        msg.paymentInvoice?.let { invoice ->
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val invoice = WalletManager.createInvoice(amount, msg.paymentDescription ?: "")
-                    WalletManager.sendPayment(invoice, amount)
+                    WalletManager.sendPayment(invoice, msg.paymentAmount)
                 } catch (e: Exception) {
                     println("[Chat] Payment failed: ${e.message}")
                 }
@@ -388,7 +371,7 @@ private fun PaymentRequestBubble(
                     Text(desc, color = TextSecondary, fontSize = 14.sp)
                 }
             }
-            if (!!msg.isIncoming) {
+            if (msg.isIncoming) {
                 Spacer(modifier = Modifier.height(12.dp))
                 // Pay Now button - kept as AccentPink since it maps to GradientCoral
                 Button(

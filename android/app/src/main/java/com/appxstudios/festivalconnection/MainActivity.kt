@@ -20,6 +20,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
+import com.appxstudios.festivalconnection.services.PermissionsManager
 import com.appxstudios.festivalconnection.services.WalletManager
 import com.appxstudios.festivalconnection.ui.screens.*
 import com.appxstudios.festivalconnection.ui.theme.*
@@ -31,6 +33,12 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize backends
+        PermissionsManager.initialize(this)
+        NostrRelayManager.connect()
+        WalletManager.connect(this)
+
         setContent {
             FestivalConnectionTheme {
                 MainTabsScreen()

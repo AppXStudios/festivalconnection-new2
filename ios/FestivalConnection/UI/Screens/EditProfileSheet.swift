@@ -199,8 +199,11 @@ struct EditProfileSheet: View {
         }
 
         // Update BLE announce nickname
+        let peerIDData = Data(IdentityManager.shared.publicKeyHex.prefix(16).compactMap { c -> UInt8? in
+            UInt8(String(c), radix: 16)
+        })
         BLEService.shared.configure(
-            peerIDData: IdentityManager.shared.peerID(),
+            peerIDData: peerIDData,
             nickname: trimmedName
         )
         BLEService.shared.sendAnnounce()

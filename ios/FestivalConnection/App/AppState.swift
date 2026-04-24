@@ -76,6 +76,34 @@ final class AppState: ObservableObject {
 
     func handleNostrEvent(_ event: NostrEvent) {
         switch event.kind {
+        case 0:
+            // Kind 0: Profile metadata
+            if let data = event.content.data(using: .utf8),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                let name = json["name"] as? String ?? json["display_name"] as? String ?? ""
+                if !name.isEmpty {
+                    let peer = PeerInfo(
+                        publicKeyHex: event.pubkey,
+                        displayName: name,
+                        handle: json["nip05"] as? String ?? "",
+                        lastSeen: Date()
+                    )
+                    updatePeer(peer)
+                }
+            }
+
+        case 4:
+            // Kind 4: Encrypted DM
+            if let decrypted = NostrDM.decrypt(encryptedContent: event.content, senderPubkeyHex: event.pubkey) {
+                let msg = ChatMessage(
+                    senderKey: event.pubkey,
+                    recipientKey: NostrIdentity.shared.publicKeyHex,
+                    content: decrypted,
+                    isIncoming: true
+                )
+                addMessage(msg, forPeer: event.pubkey)
+            }
+
         case 40:
             // Channel creation event (NIP-28)
             guard let meta = NostrChannels.parseChannelCreation(event) else { return }

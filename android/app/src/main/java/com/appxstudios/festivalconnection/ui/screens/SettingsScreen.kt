@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
+import com.appxstudios.festivalconnection.services.WalletManager
 import com.appxstudios.festivalconnection.ui.theme.*
 
 @Composable
@@ -145,7 +146,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .background(SurfaceDark, RoundedCornerShape(16.dp))
             ) {
-                SettingsRow(icon = Icons.Filled.AccountBalanceWallet, label = "Wallet", detail = "$0.00", onClick = onWallet)
+                SettingsRow(icon = Icons.Filled.AccountBalanceWallet, label = "Wallet", detail = String.format("$%.2f", WalletManager.balanceUSD.value), onClick = onWallet)
                 HorizontalDivider(color = SurfaceMedium)
                 SettingsRow(icon = Icons.Filled.Language, label = "Nostr Relays", detail = "$relayCount connected")
                 HorizontalDivider(color = SurfaceMedium)

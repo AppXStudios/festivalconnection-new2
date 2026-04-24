@@ -41,9 +41,6 @@ struct RootView: View {
     private func startCrowdSyncTransports() {
         // 1. Nostr relay transport
         NostrRelayManager.shared.connect()
-        NostrRelayManager.shared.onEvent = { event in
-            Task { @MainActor in handleNostrEvent(event) }
-        }
         appState.startNostrRelay()
 
         // 2. Breez SDK Lightning wallet
@@ -96,40 +93,4 @@ struct RootView: View {
         }
     }
 
-    @MainActor
-    private func handleNostrEvent(_ event: NostrEvent) {
-        // Route to AppState for channel events (kind 40/42) — handled there
-        appState.handleNostrEvent(event)
-
-        switch event.kind {
-        case 0:
-            // Kind 0: Profile metadata
-            if let data = event.content.data(using: .utf8),
-               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                let name = json["name"] as? String ?? json["display_name"] as? String ?? ""
-                if !name.isEmpty {
-                    let peer = PeerInfo(
-                        publicKeyHex: event.pubkey,
-                        displayName: name,
-                        handle: json["nip05"] as? String ?? "",
-                        lastSeen: Date()
-                    )
-                    appState.updatePeer(peer)
-                }
-            }
-        case 4:
-            // Kind 4: Encrypted DM
-            if let decrypted = NostrDM.decrypt(encryptedContent: event.content, senderPubkeyHex: event.pubkey) {
-                let msg = ChatMessage(
-                    senderKey: event.pubkey,
-                    recipientKey: NostrIdentity.shared.publicKeyHex,
-                    content: decrypted,
-                    isIncoming: true
-                )
-                appState.addMessage(msg, forPeer: event.pubkey)
-            }
-        default:
-            break
-        }
-    }
 }

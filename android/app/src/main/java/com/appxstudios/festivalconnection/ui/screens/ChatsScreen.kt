@@ -146,7 +146,7 @@ fun ChatsScreen(
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        CircularAvatarComposable(displayName = peer.displayName, size = 52)
+                        CircularAvatarComposable(displayName = peer.displayName, size = 52.dp)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(peer.displayName, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
