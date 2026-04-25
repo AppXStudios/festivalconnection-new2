@@ -10,6 +10,9 @@ final class WalletManager: ObservableObject {
     @Published var transactions: [WalletTransaction] = []
     @Published var isConnected: Bool = false
     @Published var connectionError: String?
+    /// Live sats-per-USD rate, refreshed alongside the balance from Breez fetchFiatRates().
+    /// Falls back to ~1100 sats/$ until the first successful fetch.
+    @Published var satPerUSD: Double = 1100
 
     private var sdk: BindingLiquidSdk?
     private var eventListenerId: String?
@@ -62,6 +65,11 @@ final class WalletManager: ObservableObject {
                 if let rates = try? sdk.fetchFiatRates() {
                     if let usdRate = rates.first(where: { $0.coin == "USD" }) {
                         balanceUSD = Double(btcBalance) / 100_000_000.0 * usdRate.value
+                        // usdRate.value = USD per BTC. 1 BTC = 100_000_000 sats.
+                        // sats per $1 = 100_000_000 / USD-per-BTC
+                        if usdRate.value > 0 {
+                            satPerUSD = 100_000_000.0 / usdRate.value
+                        }
                     }
                 }
             } catch {

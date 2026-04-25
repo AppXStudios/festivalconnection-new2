@@ -5,6 +5,7 @@ struct CreateChannelSheet: View {
     @Environment(\.dismiss) var dismiss
     @State private var channelName = ""
     @State private var channelDescription = ""
+    @State private var showOfflineError = false
 
     private var isValid: Bool {
         !channelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -86,15 +87,24 @@ struct CreateChannelSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
-                        appState.createChannel(
+                        let success = appState.createChannel(
                             name: channelName.trimmingCharacters(in: .whitespacesAndNewlines),
                             description: channelDescription.trimmingCharacters(in: .whitespacesAndNewlines)
                         )
-                        dismiss()
+                        if success {
+                            dismiss()
+                        } else {
+                            showOfflineError = true
+                        }
                     }
                     .foregroundColor(isValid ? FestivalTheme.accentPink : FestivalTheme.textMuted)
                     .disabled(!isValid)
                 }
+            }
+            .alert("No Relays Connected", isPresented: $showOfflineError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Channel creation requires an internet connection to a Nostr relay. Please check your connection and try again.")
             }
         }
     }

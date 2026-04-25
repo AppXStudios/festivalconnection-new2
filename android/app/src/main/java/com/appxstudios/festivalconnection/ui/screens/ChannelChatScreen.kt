@@ -8,8 +8,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -184,13 +184,13 @@ fun ChannelChatScreen(
             ) {
                 if (messageText.trim().isNotEmpty()) {
                     GradientIcon(
-                        imageVector = Icons.Filled.Send,
+                        imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Send",
                         size = 24.dp
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Filled.Send,
+                        imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Send",
                         tint = TextMuted,
                         modifier = Modifier.size(24.dp)

@@ -138,9 +138,12 @@ struct ReceiveAddressSheet: View {
             .onAppear {
                 Task {
                     do {
-                        walletAddress = try await WalletManager.shared.createInvoice(amountSat: 0, description: "Festival Connection Wallet")
+                        // Breez reverse-swap requires a non-zero amount above the
+                        // minimum. Use a small default (1000 sats) to satisfy the
+                        // SDK; users can still receive larger amounts.
+                        walletAddress = try await WalletManager.shared.createInvoice(amountSat: 1000, description: "Festival Connection Wallet")
                     } catch {
-                        walletAddress = "Unable to generate address"
+                        walletAddress = "Unable to generate address — try again or contact support"
                     }
                     isLoading = false
                 }

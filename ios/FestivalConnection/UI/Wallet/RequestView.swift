@@ -42,7 +42,10 @@ struct RequestView: View {
                         Task {
                             do {
                                 let amountCents = Double(amount) ?? 0
-                                let amountSat = UInt64(amountCents / 100.0 * 100_000_000.0 / 50_000.0) // rough USD->sat
+                                let usd = amountCents / 100.0
+                                // Use the live sats-per-USD rate from WalletManager
+                                // (refreshed from Breez fetchFiatRates() on every refreshBalance).
+                                let amountSat = UInt64(usd * WalletManager.shared.satPerUSD)
                                 generatedInvoice = try await WalletManager.shared.createInvoice(amountSat: amountSat, description: description)
                                 showInvoice = true
                             } catch {

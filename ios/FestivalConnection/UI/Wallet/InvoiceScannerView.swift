@@ -98,8 +98,9 @@ struct InvoiceScannerView: View {
                         let amountSat: UInt64? = {
                             guard !payAmountCents.isEmpty, let cents = Double(payAmountCents) else { return nil }
                             let usd = cents / 100.0
-                            // Approximate conversion: $1 ≈ 1500 sats (runtime rate applied by SDK)
-                            return UInt64(usd * 1500)
+                            // Use the live sats-per-USD rate maintained by WalletManager
+                            // (refreshed from Breez fetchFiatRates() on every refreshBalance).
+                            return UInt64(usd * WalletManager.shared.satPerUSD)
                         }()
                         try? await WalletManager.shared.sendPayment(invoice: pastedInvoice.trimmingCharacters(in: .whitespacesAndNewlines), amountSat: amountSat)
                         dismiss()

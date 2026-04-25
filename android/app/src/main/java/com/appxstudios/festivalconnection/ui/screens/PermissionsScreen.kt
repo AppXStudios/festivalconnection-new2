@@ -34,7 +34,12 @@ fun PermissionsScreen(
     val bluetoothGranted by pm.bluetoothGranted.collectAsState()
     val locationGranted by pm.locationGranted.collectAsState()
     val notificationsGranted by pm.notificationGranted.collectAsState()
-    var wifiGranted by remember { mutableStateOf(false) }
+    // On Android 13+ (Tiramisu) NEARBY_WIFI_DEVICES is a separate runtime permission.
+    // On older versions there is no Wi-Fi runtime permission — BLE + Location already
+    // covers nearby Wi-Fi connectivity, so we treat it as granted automatically.
+    var wifiGranted by remember {
+        mutableStateOf(Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU)
+    }
 
     val allGranted = bluetoothGranted && locationGranted && wifiGranted
 
@@ -57,8 +62,13 @@ fun PermissionsScreen(
     ) { results ->
         // Let PermissionsManager re-check system state for bluetooth, location, notifications
         pm.refreshAll()
-        // Wi-Fi is not tracked by PermissionsManager, so keep it local
-        wifiGranted = results.entries.any { (it.key.contains("WIFI") || it.key.contains("LOCATION")) && it.value }
+        // Track Wi-Fi separately. NEARBY_WIFI_DEVICES exists only on Android 13+;
+        // on older versions there's no Wi-Fi runtime permission so we keep it granted.
+        wifiGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            results[Manifest.permission.NEARBY_WIFI_DEVICES] == true
+        } else {
+            true
+        }
     }
 
     LaunchedEffect(Unit) {

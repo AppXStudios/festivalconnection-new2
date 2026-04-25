@@ -49,6 +49,9 @@ class BLEMeshService(private val context: Context) {
     private var gattServer: BluetoothGattServer? = null
 
     private val connectedDevices = ConcurrentHashMap<String, BluetoothDevice>()
+    // GATT clients we've initiated as central. Mirrors iOS BLEService where
+    // didDiscover -> connect -> discoverServices -> subscribe to notifications.
+    private val connectedClientGatts = ConcurrentHashMap<String, BluetoothGatt>()
     private val seenMessageIDs = ConcurrentHashMap<String, Long>()
     private val dedupWindowMs = 300_000L
 
@@ -93,6 +96,16 @@ class BLEMeshService(private val context: Context) {
     fun stop() {
         bleScanner?.stopScan(scanCallback)
         bleAdvertiser?.stopAdvertising(advertiseCallback)
+        // Tear down any GATT client connections we initiated as central.
+        for ((_, gatt) in connectedClientGatts) {
+            try {
+                gatt.disconnect()
+                gatt.close()
+            } catch (e: SecurityException) {
+                android.util.Log.w("BLEMeshService", "stop: gatt close failed: ${e.message}")
+            }
+        }
+        connectedClientGatts.clear()
         gattServer?.close()
         _isRunning.value = false
         _connectedPeerCount.value = 0
@@ -102,9 +115,40 @@ class BLEMeshService(private val context: Context) {
         // Send to all connected GATT clients via notification
         val characteristic = gattServer?.getService(SERVICE_UUID)
             ?.getCharacteristic(CHARACTERISTIC_UUID) ?: return
-        characteristic.value = data
         for ((_, device) in connectedDevices) {
-            gattServer?.notifyCharacteristicChanged(device, characteristic, false)
+            notifyDevice(device, characteristic, data)
+        }
+    }
+
+    /**
+     * API-aware notify wrapper.
+     *
+     * On API 33+ (TIRAMISU) the platform deprecated the legacy
+     * `characteristic.value = bytes` setter together with the 3-arg
+     * `notifyCharacteristicChanged(...)` and replaced them with a single
+     * 4-arg call that takes the value as the last argument. We branch here
+     * so newer devices use the modern API while pre-Tiramisu devices still
+     * fall back to the deprecated path.
+     *
+     * The pre-Tiramisu path mutates `characteristic.value`, which is shared
+     * state. We synchronize on the characteristic so concurrent broadcasts
+     * (or the per-device loop in broadcast()) don't race with each other and
+     * end up notifying the wrong bytes.
+     */
+    private fun notifyDevice(
+        device: BluetoothDevice,
+        characteristic: BluetoothGattCharacteristic,
+        value: ByteArray
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            gattServer?.notifyCharacteristicChanged(device, characteristic, false, value)
+        } else {
+            synchronized(characteristic) {
+                @Suppress("DEPRECATION")
+                characteristic.value = value
+                @Suppress("DEPRECATION")
+                gattServer?.notifyCharacteristicChanged(device, characteristic, false)
+            }
         }
     }
 
@@ -198,8 +242,92 @@ class BLEMeshService(private val context: Context) {
     }
 
     private val scanCallback = object : ScanCallback() {
+        @SuppressLint("MissingPermission")
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            // Connection to discovered peripherals handled by GATT server accepting connections
+            val device = result.device
+            val address = device.address ?: return
+            // Skip if we already have a connection in either direction.
+            if (connectedClientGatts.containsKey(address)) return
+            if (connectedDevices.containsKey(address)) return
+
+            // Connect as GATT client so we receive notifications from this peer.
+            // Mirrors iOS centralManager(_:didDiscover:...) -> central.connect(peripheral).
+            try {
+                val gatt = device.connectGatt(context, false, gattClientCallback)
+                if (gatt != null) {
+                    connectedClientGatts[address] = gatt
+                }
+            } catch (e: SecurityException) {
+                android.util.Log.w("BLEMeshService", "scan connect failed: ${e.message}")
+            }
+        }
+
+        override fun onScanFailed(errorCode: Int) {
+            android.util.Log.w("BLEMeshService", "BLE scan failed: $errorCode")
+        }
+    }
+
+    private val gattClientCallback = object : BluetoothGattCallback() {
+        @SuppressLint("MissingPermission")
+        override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+            val address = gatt.device.address ?: return
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    try {
+                        gatt.discoverServices()
+                    } catch (e: SecurityException) {
+                        android.util.Log.w("BLEMeshService", "discoverServices failed: ${e.message}")
+                    }
+                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    connectedClientGatts.remove(address)
+                    try { gatt.close() } catch (_: SecurityException) {}
+                }
+            } else {
+                connectedClientGatts.remove(address)
+                try { gatt.close() } catch (_: SecurityException) {}
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+            if (status != BluetoothGatt.GATT_SUCCESS) return
+            val service = gatt.getService(SERVICE_UUID) ?: return
+            val char = service.getCharacteristic(CHARACTERISTIC_UUID) ?: return
+            try {
+                gatt.setCharacteristicNotification(char, true)
+                val cccd = char.getDescriptor(CCCD_UUID)
+                if (cccd != null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        gatt.writeDescriptor(cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                        @Suppress("DEPRECATION")
+                        gatt.writeDescriptor(cccd)
+                    }
+                }
+            } catch (e: SecurityException) {
+                android.util.Log.w("BLEMeshService", "subscribe failed: ${e.message}")
+            }
+        }
+
+        @Suppress("DEPRECATION")
+        override fun onCharacteristicChanged(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic
+        ) {
+            // Pre-Tiramisu callback. Newer Android calls the 3-arg overload below.
+            val data = characteristic.value ?: return
+            processReceivedData(data)
+        }
+
+        override fun onCharacteristicChanged(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray
+        ) {
+            // API 33+ overload — receives the value as an explicit byte array.
+            processReceivedData(value)
         }
     }
 

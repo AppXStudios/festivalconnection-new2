@@ -16,7 +16,13 @@ object NostrRelayManager {
 
     private val connections = ConcurrentHashMap<String, NostrRelayConnection>()
     private val subscriptions = ConcurrentHashMap<String, List<NostrFilter>>()
-    private val eventCache = ConcurrentHashMap.newKeySet<String>()
+    // Bounded dedup cache. Maps event id -> first-seen timestamp (ms). Without
+    // bounds this grows for the life of the process and is the dominant memory
+    // leak on a long-running session. Mirrors iOS cleanExpiredCache (1-hour
+    // expiry).
+    private val eventCache = ConcurrentHashMap<String, Long>()
+    private const val MAX_CACHE_SIZE = 5000
+    private const val CACHE_EXPIRY_MS = 3600 * 1000L  // 1 hour
 
     private val _connectedRelayCount = MutableStateFlow(0)
     val connectedRelayCount: StateFlow<Int> = _connectedRelayCount
@@ -109,9 +115,11 @@ object NostrRelayManager {
         when (message) {
             is RelayMessage.EventMsg -> {
                 val event = message.event
-                if (eventCache.contains(event.id)) return
-                eventCache.add(event.id)
-                if (!event.verifyId()) return
+                if (isDuplicateEvent(event.id)) return
+                // Reject events whose id is not the SHA-256 of the canonical serialization
+                // OR whose Schnorr signature does not validate. Without the signature check,
+                // anyone could forge events with a deterministic id derived from content.
+                if (!event.verifyId() || !event.verifySignature()) return
                 onEvent?.invoke(event)
             }
             is RelayMessage.Ok -> {
@@ -124,6 +132,30 @@ object NostrRelayManager {
             }
             is RelayMessage.Notice -> println("[Nostr] NOTICE: ${message.message}")
         }
+    }
+
+    /**
+     * Bounded LRU-with-TTL dedup. Returns true when [eventId] was seen within
+     * the past [CACHE_EXPIRY_MS] ms; false when it is new (and inserts it).
+     * When the cache exceeds [MAX_CACHE_SIZE], expired entries are pruned and,
+     * if the cache is still oversized, the oldest entries are dropped down to
+     * half the cap so eviction is amortized rather than triggered every insert.
+     */
+    private fun isDuplicateEvent(eventId: String): Boolean {
+        val now = System.currentTimeMillis()
+        val seen = eventCache[eventId]
+        if (seen != null && (now - seen) < CACHE_EXPIRY_MS) return true
+        eventCache[eventId] = now
+        if (eventCache.size > MAX_CACHE_SIZE) {
+            val cutoff = now - CACHE_EXPIRY_MS
+            eventCache.entries.removeAll { it.value < cutoff }
+            if (eventCache.size > MAX_CACHE_SIZE) {
+                val sorted = eventCache.entries.sortedBy { it.value }
+                val drop = eventCache.size - MAX_CACHE_SIZE / 2
+                sorted.take(drop).forEach { eventCache.remove(it.key) }
+            }
+        }
+        return false
     }
 }
 

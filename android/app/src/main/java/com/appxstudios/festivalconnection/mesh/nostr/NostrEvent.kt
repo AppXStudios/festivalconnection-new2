@@ -17,11 +17,17 @@ data class NostrEvent(
     companion object {
         private val gson = Gson()
 
+        /**
+         * NIP-01 canonical serialization: [0, pubkey, created_at, kind, tags, content].
+         * Escapes per JSON spec: ", \, \b, \f, \n, \r, \t, and all control chars (< 0x20)
+         * as \u00XX. Forward slash is NOT escaped. This matches iOS JSONSerialization with
+         * .withoutEscapingSlashes, ensuring identical event IDs across platforms.
+         */
         fun serialize(pubkey: String, createdAt: Long, kind: Int, tags: List<List<String>>, content: String): String {
             val tagsJson = tags.joinToString(",") { tag ->
-                "[" + tag.joinToString(",") { "\"${escapeJson(it)}\"" } + "]"
+                "[" + tag.joinToString(",") { "\"${escapeJsonString(it)}\"" } + "]"
             }
-            return "[0,\"$pubkey\",$createdAt,$kind,[$tagsJson],\"${escapeJson(content)}\"]"
+            return "[0,\"${escapeJsonString(pubkey)}\",$createdAt,$kind,[$tagsJson],\"${escapeJsonString(content)}\"]"
         }
 
         fun computeId(pubkey: String, createdAt: Long, kind: Int, tags: List<List<String>>, content: String): String {
@@ -46,16 +52,29 @@ data class NostrEvent(
             return try { gson.fromJson(json, NostrEvent::class.java) } catch (e: Exception) { null }
         }
 
-        private fun escapeJson(str: String): String {
-            val sb = StringBuilder()
-            for (c in str) {
+        /**
+         * NIP-01 / RFC 8259 compliant string escaping for canonical JSON.
+         * Escapes: " \ \b \f \n \r \t and all control characters (code < 0x20) as \u00XX.
+         * Does NOT escape forward slash (/) — slashes pass through unchanged.
+         */
+        private fun escapeJsonString(s: String): String {
+            val sb = StringBuilder(s.length + 8)
+            for (c in s) {
                 when (c) {
                     '"' -> sb.append("\\\"")
                     '\\' -> sb.append("\\\\")
+                    '\b' -> sb.append("\\b")
+                    '' -> sb.append("\\f")
                     '\n' -> sb.append("\\n")
                     '\r' -> sb.append("\\r")
                     '\t' -> sb.append("\\t")
-                    else -> sb.append(c)
+                    else -> {
+                        if (c.code < 0x20) {
+                            sb.append(String.format("\\u%04x", c.code))
+                        } else {
+                            sb.append(c)
+                        }
+                    }
                 }
             }
             return sb.toString()
@@ -65,6 +84,25 @@ data class NostrEvent(
     fun verifyId(): Boolean {
         val computed = computeId(pubkey, createdAt, kind, tags, content)
         return computed == id
+    }
+
+    /**
+     * Verify the BIP-340 Schnorr signature against the event ID and pubkey.
+     * Mirrors iOS NostrEvent.verifySignature (using P256K.Schnorr.XonlyKey.isValid).
+     * Returns false if signature is missing, malformed, or does not validate.
+     */
+    fun verifySignature(): Boolean {
+        return try {
+            val pubBytes = NostrIdentity.hexToBytes(pubkey) ?: return false
+            if (pubBytes.size != 32) return false
+            val sigBytes = NostrIdentity.hexToBytes(sig) ?: return false
+            if (sigBytes.size != 64) return false
+            val msgHash = NostrIdentity.hexToBytes(id) ?: return false
+            if (msgHash.size != 32) return false
+            NostrIdentity.verifyBIP340(pubBytes, msgHash, sigBytes)
+        } catch (e: Exception) {
+            false
+        }
     }
 
     fun toJson(): String = gson.toJson(this)

@@ -215,7 +215,10 @@ struct EditProfileSheet: View {
         if let jsonData = try? JSONSerialization.data(withJSONObject: profileJSON),
            let jsonString = String(data: jsonData, encoding: .utf8) {
             let event = NostrEvent.create(kind: 0, content: jsonString)
-            NostrRelayManager.shared.publishEvent(event)
+            let relayCount = NostrRelayManager.shared.publishEvent(event)
+            if relayCount == 0 {
+                print("[EditProfile] Profile metadata not broadcast — no relays connected")
+            }
         }
 
         // Update BLE announce nickname

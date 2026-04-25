@@ -29,6 +29,12 @@ object CrowdSyncBinaryProtocol {
     const val SIGNATURE_SIZE = 64
     const val FLAG_HAS_RECIPIENT = 0x01
     const val FLAG_HAS_SIGNATURE = 0x02
+    // Wire-format parity with iOS CrowdSyncBinaryProtocol.Flags.isCompressed
+    // (Protocol/CrowdSyncPacket.swift:46). Reserved for forward compatibility —
+    // neither platform emits or consumes compressed payloads yet, but receivers
+    // need to recognize the flag bit so a future compressed-capable peer doesn't
+    // get its packets rejected as malformed.
+    const val FLAG_IS_COMPRESSED = 0x04
 
     fun encode(packet: CrowdSyncPacket): ByteArray? {
         val buf = mutableListOf<Byte>()

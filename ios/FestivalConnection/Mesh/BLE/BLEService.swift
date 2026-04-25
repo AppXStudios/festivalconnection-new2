@@ -103,10 +103,15 @@ final class BLEService: NSObject, ObservableObject {
         guard let characteristic = characteristic, let peripheralManager = peripheralManager else { return }
         peripheralManager.updateValue(data, for: characteristic, onSubscribedCentrals: nil)
 
-        // Also write to all connected peripherals
+        // Also write to all connected peripherals. Festival mesh fan-out is much
+        // faster with .withoutResponse — only fall back to .withResponse when the
+        // peripheral signals it can't take another write-without-response right now.
         for (_, state) in peripherals where state.isConnected {
             if let char = state.characteristic {
-                state.peripheral.writeValue(data, for: char, type: .withResponse)
+                let writeType: CBCharacteristicWriteType = state.peripheral.canSendWriteWithoutResponse
+                    ? .withoutResponse
+                    : .withResponse
+                state.peripheral.writeValue(data, for: char, type: writeType)
             }
         }
     }

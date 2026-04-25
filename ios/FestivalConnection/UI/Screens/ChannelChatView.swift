@@ -137,7 +137,10 @@ struct ChannelChatView: View {
         appState.addChannelMessage(msg)
 
         // Publish to Nostr relays (kind-42, NIP-28)
-        NostrRelayManager.shared.publishEvent(nostrEvent)
+        let relayCount = NostrRelayManager.shared.publishEvent(nostrEvent)
+        if relayCount == 0 {
+            print("[ChannelChat] Message not broadcast to relays — none connected")
+        }
 
         messageText = ""
     }

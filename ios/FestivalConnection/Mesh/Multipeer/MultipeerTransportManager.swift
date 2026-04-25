@@ -28,8 +28,7 @@ final class MultipeerTransportManager: NSObject, ObservableObject {
     }
 
     func configure(displayName: String, identityFingerprint: String) {
-        let name = "\(displayName)_\(identityFingerprint.prefix(8))"
-        localPeerID = MCPeerID(displayName: name)
+        localPeerID = makePeerID(displayName: displayName, fingerprint: String(identityFingerprint.prefix(8)))
         session = MCSession(peer: localPeerID, securityIdentity: nil, encryptionPreference: .required)
         session.delegate = self
 
@@ -38,6 +37,21 @@ final class MultipeerTransportManager: NSObject, ObservableObject {
 
         browser = MCNearbyServiceBrowser(peer: localPeerID, serviceType: serviceType)
         browser.delegate = self
+    }
+
+    /// MCPeerID requires a displayName of 1...63 UTF-8 bytes. With multibyte characters
+    /// (emoji etc.) in a nickname we can easily blow past 63 bytes and crash. Truncate
+    /// safely so the combined "<name>_<fingerprint>" stays within the limit.
+    private func makePeerID(displayName: String, fingerprint: String) -> MCPeerID {
+        let separatorBytes = 1 // "_"
+        let maxNameBytes = max(0, 63 - fingerprint.utf8.count - separatorBytes)
+        var safeName = displayName
+        while safeName.utf8.count > maxNameBytes {
+            safeName = String(safeName.dropLast())
+        }
+        if safeName.isEmpty { safeName = "Peer" }
+        let combined = "\(safeName)_\(fingerprint)"
+        return MCPeerID(displayName: combined)
     }
 
     func start() {

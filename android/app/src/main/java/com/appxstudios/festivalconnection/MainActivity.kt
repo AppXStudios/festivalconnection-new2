@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -23,7 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.appxstudios.festivalconnection.mesh.ble.BLEMeshService
+import com.appxstudios.festivalconnection.mesh.nostr.NostrChannels
 import com.appxstudios.festivalconnection.mesh.nostr.NostrEventDispatcher
+import com.appxstudios.festivalconnection.mesh.nostr.NostrFilter
 import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
 import com.appxstudios.festivalconnection.mesh.shared.PacketProcessor
 import com.appxstudios.festivalconnection.security.IdentityManager
@@ -35,7 +36,6 @@ import com.appxstudios.festivalconnection.ui.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -50,13 +50,9 @@ class MainActivity : ComponentActivity() {
             private set
     }
 
-    // Activity Result launcher for runtime permissions. Must be registered as a property
-    // so it is created before the activity reaches the CREATED state.
-    private val permLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { result ->
-        PermissionsManager.getInstance().onPermissionsResult(result)
-    }
+    // Note: PermissionsScreen registers its own ActivityResult launcher via
+    // rememberLauncherForActivityResult and drives the runtime-permissions flow itself.
+    // No activity-scoped launcher is needed here.
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,8 +65,6 @@ class MainActivity : ComponentActivity() {
 
         // Initialize backends
         PermissionsManager.initialize(this)
-        // Wire the activity-scoped permission launcher so any screen can request permissions.
-        PermissionsManager.getInstance().registerLauncher(permLauncher)
         // Refresh permission state on launch so PermissionsScreen reflects current grants.
         PermissionsManager.getInstance().refreshAll()
 
@@ -81,6 +75,21 @@ class MainActivity : ComponentActivity() {
         NostrEventDispatcher.install()
         NostrRelayManager.connect()
         WalletManager.connect(this)
+
+        // Subscribe globally to kind-42 channel messages and kind-40 channel
+        // creation events at process start, so screens that observe the
+        // dispatcher (NearbyScreen, ChannelsScreen) receive events even on a
+        // cold launch directly into a tab whose own DisposableEffect has not
+        // yet run. The per-screen subscriptions remain so screens can request
+        // narrower filters when needed; duplicate REQs at the relay layer are
+        // harmless.
+        val nearbyFilter = NostrFilter(
+            kinds = listOf(42),
+            since = (System.currentTimeMillis() / 1000) - 3600,
+            limit = 50
+        )
+        NostrRelayManager.subscribe(nearbyFilter)
+        NostrRelayManager.subscribe(NostrChannels.channelDiscoveryFilter())
 
         // Instantiate BLE mesh transport (CrowdSync BLE layer)
         val appContext = applicationContext
@@ -138,6 +147,19 @@ class MainActivity : ComponentActivity() {
                 WalletManager.refreshBalance()
                 WalletManager.refreshTransactions()
             }
+        }
+
+        // Wire mesh relay callback. PacketProcessor.receive() decrements TTL and
+        // hands the encoded packet here for forwarding. We re-broadcast on every
+        // transport *except* the one that delivered the packet to avoid looping
+        // a frame back to its source. Mirrors iOS PacketProcessor.relay()
+        // (ios/FestivalConnection/Mesh/Shared/PacketProcessor.swift:84-92).
+        PacketProcessor.onRelay = { relayedData, sourceTransport ->
+            if (sourceTransport != PacketProcessor.TransportType.BLE) {
+                bleService?.broadcast(relayedData)
+            }
+            // TODO: when Nearby / WiFiDirect transports are added, mirror the
+            // BLE pattern here so packets fan out across all transports.
         }
 
         setContent {

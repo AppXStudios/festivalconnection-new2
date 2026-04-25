@@ -55,8 +55,6 @@
     <string>Festival Connection uses your location to maintain CrowdSync™ connections and discover geo-local channels.</string>
     <key>NSCameraUsageDescription</key>
     <string>Festival Connection uses the camera to scan QR codes for connecting with other attendees and to set your profile picture.</string>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>Festival Connection uses the microphone to record voice messages.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Festival Connection accesses your photo library to set your profile picture.</string>
     <key>UIBackgroundModes</key>

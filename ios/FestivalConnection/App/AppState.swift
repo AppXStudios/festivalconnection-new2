@@ -260,13 +260,19 @@ final class AppState: ObservableObject {
 
     // MARK: - Channel Methods
 
-    func createChannel(name: String, description: String = "", isGeofenced: Bool = false) {
+    @discardableResult
+    func createChannel(name: String, description: String = "", isGeofenced: Bool = false) -> Bool {
         let myKey = IdentityManager.shared.publicKeyHex
         let myName = UserDefaults.standard.string(forKey: "fc_nickname") ?? IdentityManager.shared.displayName
 
         // Publish channel creation to Nostr relays (kind-40, NIP-28)
         let nostrEvent = NostrChannels.createChannel(name: name, about: description)
-        NostrRelayManager.shared.publishEvent(nostrEvent)
+        let relayCount = NostrRelayManager.shared.publishEvent(nostrEvent)
+        if relayCount == 0 {
+            // No relays connected — surface the error, do NOT add ghost channel
+            print("[AppState] createChannel: no relays connected, skipping local add")
+            return false
+        }
 
         // Use the Nostr event ID as the channel ID for relay-based lookup
         let channelId = nostrEvent.id
@@ -287,6 +293,7 @@ final class AppState: ObservableObject {
 
         // Subscribe to messages for this channel
         subscribeToChannelMessages(channelId)
+        return true
     }
 
     func addChannel(_ channel: ChannelInfo) {

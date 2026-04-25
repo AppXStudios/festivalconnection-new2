@@ -114,11 +114,17 @@ object NostrIdentity {
 
     /**
      * secp256k1 ECDH shared secret.
-     * Lifts x-only public key to a point with even y, computes d*P, and returns the X coordinate
-     * (32 bytes). NostrDM uses this directly as the AES-256 key per bitchat's NIP-04 pattern
-     * (no extra SHA-256 wrap), matching iOS behavior.
+     * Lifts x-only public key with the given parity (0x02 = even y, 0x03 = odd y),
+     * computes d*P, and returns the X coordinate (32 bytes). NostrDM uses this
+     * directly as the AES-256 key per bitchat's NIP-04 pattern (no extra SHA-256 wrap),
+     * matching iOS behavior.
+     *
+     * Nostr pubkeys are x-only (32 bytes), but ECDH needs a compressed (33-byte) point.
+     * Each X has TWO possible Y parities and they produce DIFFERENT shared secrets.
+     * Outgoing messages use 0x02 deterministically; the recipient must try BOTH on
+     * decrypt because only one parity matches the sender's actual key.
      */
-    fun computeSharedSecret(withPublicKeyHex: String): ByteArray? {
+    fun computeSharedSecret(withPublicKeyHex: String, parityByte: Byte = 0x02): ByteArray? {
         val privBytes = privateKeyBytes ?: return null
         val pubBytes = hexToBytes(withPublicKeyHex) ?: return null
         if (pubBytes.size != 32) return null
@@ -127,14 +133,75 @@ object NostrIdentity {
             val d = BigInteger(1, privBytes)
             if (d.signum() == 0 || d >= SECP256K1_N) return null
 
-            // Lift x-only public key: prepend 0x02 (even y) and decode.
-            val pubPoint = curveSpec.curve.decodePoint(byteArrayOf(0x02) + pubBytes)
+            // Lift x-only public key with the requested parity prefix and decode.
+            val pubPoint = curveSpec.curve.decodePoint(byteArrayOf(parityByte) + pubBytes)
 
             val shared = pubPoint.multiply(d).normalize()
             if (shared.isInfinity) return null
             fixedLength32(shared.xCoord.toBigInteger())
         } catch (e: Exception) {
             null
+        }
+    }
+
+    /**
+     * Returns both candidate NIP-04 shared secrets for an x-only pubkey: [evenY (0x02), oddY (0x03)].
+     * Caller should attempt decryption with each and accept the one that yields valid UTF-8 plaintext.
+     * Mirrors iOS NostrIdentity.computeSharedSecretsBothParities.
+     */
+    fun computeSharedSecretsBothParities(withPublicKeyHex: String): List<ByteArray> {
+        val results = mutableListOf<ByteArray>()
+        computeSharedSecret(withPublicKeyHex, 0x02)?.let { results.add(it) }
+        computeSharedSecret(withPublicKeyHex, 0x03)?.let { results.add(it) }
+        return results
+    }
+
+    /**
+     * BIP-340 Schnorr signature verification.
+     * Verifies a 64-byte signature `sig` against the 32-byte x-only public key `pubKeyXBytes`
+     * over the 32-byte message hash `msg`. Returns true iff the signature is valid.
+     * Used by NostrEvent.verifySignature() to reject forged events on the relay path.
+     */
+    fun verifyBIP340(pubKeyXBytes: ByteArray, msg: ByteArray, sig: ByteArray): Boolean {
+        return try {
+            if (pubKeyXBytes.size != 32 || msg.size != 32 || sig.size != 64) return false
+
+            val n = SECP256K1_N
+            // Field characteristic p for secp256k1
+            val p = curveSpec.curve.field.characteristic
+
+            // Lift x-only to even-y point P
+            val xBig = BigInteger(1, pubKeyXBytes)
+            if (xBig >= p) return false
+            val pPoint = try {
+                curveSpec.curve.decodePoint(byteArrayOf(0x02) + pubKeyXBytes).normalize()
+            } catch (e: Exception) {
+                return false
+            }
+            if (pPoint.isInfinity) return false
+
+            // Parse R.x and s from sig
+            val rBytes = sig.sliceArray(0 until 32)
+            val sBytes = sig.sliceArray(32 until 64)
+            val rBig = BigInteger(1, rBytes)
+            val sBig = BigInteger(1, sBytes)
+            if (rBig >= p || sBig >= n) return false
+
+            // e = int(taggedHash("BIP0340/challenge", r || P.x || msg)) mod n
+            val challenge = rBytes + pubKeyXBytes + msg
+            val e = BigInteger(1, taggedHash("BIP0340/challenge", challenge)).mod(n)
+
+            // R = s*G - e*P
+            val sG = curveSpec.g.multiply(sBig)
+            val eP = pPoint.multiply(e)
+            val rPoint = sG.subtract(eP).normalize()
+
+            if (rPoint.isInfinity) return false
+            // y must be even
+            if (rPoint.yCoord.toBigInteger().testBit(0)) return false
+            rPoint.xCoord.toBigInteger() == rBig
+        } catch (e: Exception) {
+            false
         }
     }
 

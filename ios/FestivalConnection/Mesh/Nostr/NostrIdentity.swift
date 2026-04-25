@@ -11,6 +11,9 @@ final class NostrIdentity: ObservableObject {
     @Published var publicKeyHex = ""
 
     // Raw 32-byte secp256k1 private scalar, used to build Schnorr / KeyAgreement keys on demand.
+    // TODO(MED-7): Consider wiping `privateKeyBytes` after each sign() and reloading from
+    // Keychain on demand for stronger heap hygiene. Acceptable to keep cached for a chat
+    // app, but verify there is no perceptible signing latency before changing.
     private var privateKeyBytes: Data?
     private let keychainAccount = "fc_nostr_privkey"
 

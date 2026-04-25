@@ -21,6 +21,11 @@ object PacketProcessor {
     var onLeave: ((String) -> Unit)? = null
     var onPaymentRequest: ((String, Long, String, String) -> Unit)? = null
     var onPaymentNotification: ((ByteArray, Long, Byte) -> Unit)? = null
+    // Relay callback. MainActivity wires this to BLEMeshService.broadcast (and any
+    // future Nearby/WiFiDirect transports). Without this, TTL>1 packets never get
+    // forwarded to the rest of the mesh — see iOS PacketProcessor.relay() at
+    // ios/FestivalConnection/Mesh/Shared/PacketProcessor.swift:84-92.
+    var onRelay: ((ByteArray, TransportType) -> Unit)? = null
 
     enum class TransportType { BLE, NEARBY, NOSTR }
 
@@ -35,8 +40,10 @@ object PacketProcessor {
         if (packet.ttl > 1) {
             val relayed = packet.copy(ttl = packet.ttl - 1)
             val relayedData = CrowdSyncBinaryProtocol.encode(relayed) ?: return
-            // Relay to other transports (excluding source)
-            // BLE and Nearby transports handle their own broadcast
+            // Hand off to the host (MainActivity) which knows which transports
+            // to forward on. Source transport is passed so the host can avoid
+            // looping the packet back to its origin.
+            onRelay?.invoke(relayedData, fromTransport)
         }
     }
 

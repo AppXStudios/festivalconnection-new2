@@ -28,6 +28,7 @@ import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
 import com.appxstudios.festivalconnection.security.NostrIdentity
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
 import com.appxstudios.festivalconnection.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun ChannelsScreen(
@@ -41,48 +42,58 @@ fun ChannelsScreen(
     val channels = remember { mutableStateListOf<ChannelInfo>() }
     var channelName by remember { mutableStateOf("") }
     var channelDesc by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
 
-    // Subscribe to kind-40 channel creation events for discovery.
-    // Collect from the central dispatcher instead of overwriting NostrRelayManager.onEvent
-    // — the previousHandler chain pattern leaks unboundedly on recomposition.
-    LaunchedEffect(Unit) {
-        val filter = NostrChannels.channelDiscoveryFilter()
-        NostrRelayManager.subscribe(filter)
+    // Subscribe to kind-40 channel creation events for discovery and kind-42
+    // channel messages (so member counts grow as senders post). DisposableEffect
+    // tears down both the relay subscription and the collector jobs on tab exit.
+    // The prior LaunchedEffect form discarded the subscription id, so each tab
+    // re-entry leaked a REQ at every connected relay.
+    DisposableEffect(Unit) {
+        val subId = NostrRelayManager.subscribe(NostrChannels.channelDiscoveryFilter())
 
-        NostrEventDispatcher.events.collect { event ->
-            if (event.kind != 40) return@collect
-            val parsed = NostrChannels.parseChannelCreation(event) ?: return@collect
-            val (name, about, _) = parsed
-            if (name.isEmpty()) return@collect
-            if (channels.any { it.id == event.id }) return@collect
+        val discoveryJob = scope.launch {
+            NostrEventDispatcher.events.collect { event ->
+                if (event.kind != 40) return@collect
+                val parsed = NostrChannels.parseChannelCreation(event) ?: return@collect
+                val (name, about, _) = parsed
+                if (name.isEmpty()) return@collect
+                if (channels.any { it.id == event.id }) return@collect
 
-            channels.add(0, ChannelInfo(
-                id = event.id,
-                name = name,
-                creatorPublicKeyHex = event.pubkey,
-                memberPublicKeys = mutableSetOf(event.pubkey),
-                channelDescription = about
-            ))
-        }
-    }
-
-    // Track kind-42 channel messages so memberPublicKeys grows as senders post.
-    // memberCount on each ChannelInfo is derived from this set.
-    LaunchedEffect("channel-members") {
-        NostrEventDispatcher.events.collect { event ->
-            if (event.kind != 42) return@collect
-            val rootId = event.tags.firstOrNull { tag ->
-                tag.size >= 2 && tag[0] == "e"
-            }?.getOrNull(1) ?: return@collect
-            val idx = channels.indexOfFirst { it.id == rootId }
-            if (idx < 0) return@collect
-            val info = channels[idx]
-            if (info.memberPublicKeys.add(event.pubkey)) {
-                // Force recomposition by replacing the entry — memberCount is derived
-                // from a MutableSet inside a `data class`, so list mutation alone
-                // does not trigger Compose snapshot invalidation.
-                channels[idx] = info
+                channels.add(0, ChannelInfo(
+                    id = event.id,
+                    name = name,
+                    creatorPublicKeyHex = event.pubkey,
+                    memberPublicKeys = mutableSetOf(event.pubkey),
+                    channelDescription = about
+                ))
             }
+        }
+
+        // Track kind-42 channel messages so memberPublicKeys grows as senders
+        // post. memberCount on each ChannelInfo is derived from this set.
+        val membershipJob = scope.launch {
+            NostrEventDispatcher.events.collect { event ->
+                if (event.kind != 42) return@collect
+                val rootId = event.tags.firstOrNull { tag ->
+                    tag.size >= 2 && tag[0] == "e"
+                }?.getOrNull(1) ?: return@collect
+                val idx = channels.indexOfFirst { it.id == rootId }
+                if (idx < 0) return@collect
+                val info = channels[idx]
+                if (info.memberPublicKeys.add(event.pubkey)) {
+                    // Force recomposition by replacing the entry — memberCount
+                    // is derived from a MutableSet inside a data class, so list
+                    // mutation alone does not trigger Compose invalidation.
+                    channels[idx] = info
+                }
+            }
+        }
+
+        onDispose {
+            discoveryJob.cancel()
+            membershipJob.cancel()
+            NostrRelayManager.unsubscribe(subId)
         }
     }
 

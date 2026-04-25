@@ -18,6 +18,11 @@ final class NostrRelayManager: ObservableObject {
     private var eventCacheTimestamps: [String: Date] = [:]
     private let cacheExpiry: TimeInterval = 3600 // 1 hour
 
+    // Per-relay consecutive failure tracking. Mirrors bitchat's `isPermanentlyFailed`
+    // pattern: after N failures we stop retrying that relay until reset/manual retry.
+    private var relayFailureCounts: [String: Int] = [:]
+    private let maxConsecutiveFailures = 10
+
     private let defaultRelays = [
         "wss://relay.damus.io",
         "wss://relay.nostr.band",
@@ -99,13 +104,27 @@ final class NostrRelayManager: ObservableObject {
         connections.removeAll()
         relayStatuses.removeAll()
         connectedRelayCount = 0
+        // A full disconnect resets the failure-tracking state so a subsequent connect()
+        // gets a clean slate (parity with bitchat `resetAllConnections`).
+        relayFailureCounts.removeAll()
     }
 
-    func publishEvent(_ event: NostrEvent) {
+    /// Publish a Nostr event to all currently-connected relays.
+    /// - Returns: Number of relays the event was sent to (0 if none connected).
+    @discardableResult
+    func publishEvent(_ event: NostrEvent) -> Int {
         let message = ClientMessage.event(event).serialized()
+        var count = 0
         for (_, conn) in connections where conn.status == .connected {
             conn.send(message)
+            count += 1
         }
+        if count == 0 {
+            print("[NostrRelay] publishEvent kind=\(event.kind) — WARNING: 0 relays connected")
+        } else {
+            print("[NostrRelay] publishEvent kind=\(event.kind) sent to \(count) relays")
+        }
+        return count
     }
 
     func subscribe(filter: NostrFilter) -> String {
@@ -132,6 +151,13 @@ final class NostrRelayManager: ObservableObject {
 
     private func connectToRelay(_ urlString: String) {
         guard connections[urlString] == nil else { return }
+        // Skip relays that have failed too many times in a row (parity with bitchat
+        // `isPermanentlyFailed`). They are reset on disconnect()/resetAllConnections().
+        if isPermanentlyFailed(urlString) {
+            print("[NostrRelay] Skipping permanently-failed relay: \(urlString)")
+            relayStatuses[urlString] = .failed
+            return
+        }
 
         let conn = NostrRelayConnection(urlString: urlString) { [weak self] message in
             Task { @MainActor in
@@ -139,12 +165,31 @@ final class NostrRelayManager: ObservableObject {
             }
         } onStatusChange: { [weak self] status in
             Task { @MainActor in
-                self?.relayStatuses[urlString] = status
-                self?.connectedRelayCount = self?.connections.values.filter { $0.status == .connected }.count ?? 0
+                guard let self = self else { return }
+                self.relayStatuses[urlString] = status
+                self.connectedRelayCount = self.connections.values.filter { $0.status == .connected }.count
 
-                // Re-send subscriptions on reconnect
                 if status == .connected {
-                    self?.resendSubscriptions(to: urlString)
+                    // Reset failure count on successful connection.
+                    self.relayFailureCounts[urlString] = 0
+                    // Re-send all currently-active subscription handlers as REQ messages
+                    // to this relay (NIP-01). Verified: this iterates the full
+                    // `subscriptions` dict and sends each one. Mirrors bitchat's
+                    // `flushPendingSubscriptions` pattern at a smaller scale.
+                    self.resendSubscriptions(to: urlString)
+                } else if status == .disconnected || status == .failed {
+                    // Track consecutive failures; once we exceed the threshold the
+                    // relay is treated as permanently failed and the underlying
+                    // NostrRelayConnection's reconnect loop should be cancelled.
+                    self.relayFailureCounts[urlString, default: 0] += 1
+                    if self.isPermanentlyFailed(urlString) {
+                        print("[NostrRelay] Relay \(urlString) marked permanently failed after \(self.relayFailureCounts[urlString] ?? 0) failures — cancelling reconnect loop")
+                        if let existing = self.connections[urlString] {
+                            existing.cancelReconnect()
+                            self.connections.removeValue(forKey: urlString)
+                        }
+                        self.relayStatuses[urlString] = .failed
+                    }
                 }
             }
         }
@@ -154,12 +199,22 @@ final class NostrRelayManager: ObservableObject {
         conn.connect()
     }
 
+    /// Re-issue REQ messages for every active subscription to a relay that just
+    /// (re)connected. Subscriptions are tracked globally (not per-relay) because we
+    /// fan-out the same filter to every connected relay; on reconnect every one of
+    /// them needs to be replayed.
     private func resendSubscriptions(to urlString: String) {
         guard let conn = connections[urlString] else { return }
         for (subId, filters) in subscriptions {
             let message = ClientMessage.req(subscriptionId: subId, filters: filters).serialized()
             conn.send(message)
         }
+    }
+
+    /// True once a relay has failed `maxConsecutiveFailures` times in a row without a
+    /// successful connection in between. The count is reset on successful connect.
+    private func isPermanentlyFailed(_ url: String) -> Bool {
+        (relayFailureCounts[url] ?? 0) >= maxConsecutiveFailures
     }
 
     private func handleRelayMessage(_ json: String, from relay: String) {
@@ -245,6 +300,14 @@ final class NostrRelayConnection: NSObject, URLSessionWebSocketDelegate {
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         status = .disconnected
         onStatusChange(.disconnected)
+    }
+
+    /// Stop the reconnect loop for this socket without firing another status change.
+    /// Used when the manager has classified this relay as permanently failed.
+    func cancelReconnect() {
+        shouldReconnect = false
+        webSocketTask?.cancel(with: .goingAway, reason: nil)
+        webSocketTask = nil
     }
 
     func send(_ message: String) {

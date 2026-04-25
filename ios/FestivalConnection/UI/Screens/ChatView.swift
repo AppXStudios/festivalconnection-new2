@@ -103,7 +103,10 @@ struct ChatView: View {
 
         // Send via NIP-04 encrypted DM over Nostr
         if let dmEvent = NostrDM.createDirectMessage(to: peerKey, content: trimmed) {
-            NostrRelayManager.shared.publishEvent(dmEvent)
+            let relayCount = NostrRelayManager.shared.publishEvent(dmEvent)
+            if relayCount == 0 {
+                print("[ChatView] DM not broadcast — no relays connected; mesh-only delivery")
+            }
         }
 
         // Send via mesh (BLE + Multipeer) through PacketProcessor
@@ -383,7 +386,10 @@ struct PaymentRequestSheet: View {
                     if let jsonData = try? JSONSerialization.data(withJSONObject: payload),
                        let jsonString = String(data: jsonData, encoding: .utf8),
                        let dmEvent = NostrDM.createDirectMessage(to: peerKey, content: jsonString) {
-                        NostrRelayManager.shared.publishEvent(dmEvent)
+                        let relayCount = NostrRelayManager.shared.publishEvent(dmEvent)
+                        if relayCount == 0 {
+                            print("[ChatView] Payment-request DM not broadcast — no relays connected")
+                        }
                     }
 
                     isLoading = false
