@@ -120,6 +120,11 @@ object WalletManager : EventListener {
 
     // MARK: - Parse Invoice
 
+    /**
+     * Synchronous parse — kept for back-compat with non-coroutine callers.
+     * Internally calls `sdk.parse()` which is potentially blocking I/O.
+     * Prefer `parseInvoiceAsync` from a coroutine context.
+     */
     fun parseInvoice(input: String): Pair<Long?, String?> {
         val sdk = sdk ?: throw WalletException("Wallet not connected")
         return when (val parsed = sdk.parse(input)) {
@@ -129,6 +134,15 @@ object WalletManager : EventListener {
             }
             else -> Pair(null, null)
         }
+    }
+
+    /**
+     * Suspend variant that runs `sdk.parse()` on the IO dispatcher.
+     * Use this from main-thread callbacks (e.g. the camera barcode callback)
+     * to avoid blocking the UI thread on a parse round-trip.
+     */
+    suspend fun parseInvoiceAsync(input: String): Pair<Long?, String?> = withContext(Dispatchers.IO) {
+        parseInvoice(input)
     }
 
     // MARK: - Transaction History

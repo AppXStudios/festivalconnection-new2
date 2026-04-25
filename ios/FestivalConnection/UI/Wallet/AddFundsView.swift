@@ -34,8 +34,8 @@ struct AddFundsView: View {
                     } label: {
                         fundCard(
                             icon: "arrow.down.circle.fill",
-                            title: "Send to this wallet",
-                            subtitle: "From any compatible wallet"
+                            title: "Receive Lightning Payment",
+                            subtitle: "Open invoice — sender chooses amount"
                         )
                     }
                     .buttonStyle(.plain)
@@ -91,7 +91,7 @@ struct ReceiveAddressSheet: View {
                 FestivalTheme.backgroundBlack.ignoresSafeArea()
 
                 VStack(spacing: 20) {
-                    Text("Receive Funds")
+                    Text("Lightning Invoice")
                         .font(.system(size: 24, weight: .heavy))
                         .foregroundColor(.white)
                         .padding(.top, 20)
@@ -106,16 +106,18 @@ struct ReceiveAddressSheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
 
-                    Text("Scan this QR code to send funds")
-                        .font(.system(size: 15))
+                    Text("Lightning open invoice — sender chooses any amount")
+                        .font(.system(size: 13))
                         .foregroundColor(FestivalTheme.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
 
                     Button(action: {
                         UIPasteboard.general.string = walletAddress
                         copied = true
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copied = false }
                     }) {
-                        Text(copied ? "Copied!" : "Copy Address")
+                        Text(copied ? "Copied!" : "Copy Invoice")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 24)

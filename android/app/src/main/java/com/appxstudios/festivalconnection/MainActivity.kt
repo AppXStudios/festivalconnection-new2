@@ -41,6 +41,15 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     private var bleService: BLEMeshService? = null
 
+    companion object {
+        // Activity-scoped reference exposed so AppRoot composables can
+        // re-call BLEMeshService.start() once permissions are granted.
+        // start() is idempotent and silently no-ops if permissions are still missing.
+        @Volatile
+        var sharedBleService: BLEMeshService? = null
+            private set
+    }
+
     // Activity Result launcher for runtime permissions. Must be registered as a property
     // so it is created before the activity reaches the CREATED state.
     private val permLauncher = registerForActivityResult(
@@ -96,6 +105,7 @@ class MainActivity : ComponentActivity() {
             start()
         }
         bleService = ble
+        sharedBleService = ble
 
         // Wire PacketProcessor callbacks to persistence
         // When a mesh-layer message arrives, record the sender in "connected_peers" so the
@@ -187,6 +197,12 @@ fun AppRoot() {
             PermissionsScreen(onGetStarted = {
                 prefs.edit().putBoolean("fc_onboarding_complete", true).apply()
                 onboardingComplete = true
+                // BLEMeshService.start() in MainActivity.onCreate may have been a no-op
+                // because BLE permissions were not yet granted. Re-trigger it now that
+                // onboarding (which grants those permissions) is complete. start() is
+                // idempotent — it checks permissions internally and silently returns
+                // if still missing.
+                MainActivity.sharedBleService?.start()
             })
         }
 

@@ -179,17 +179,20 @@ fun InvoiceScannerScreen(
                 InvoiceCameraScanner(
                     onQRScanned = { code ->
                         pastedInvoice = code
-                        try {
-                            val (amountSat, description) = WalletManager.parseInvoice(code)
-                            parsedAmountSat = amountSat
-                            parsedDescription = description
-                            parseError = null
-                        } catch (e: Exception) {
-                            parseError = e.message ?: "Failed to parse invoice"
-                            parsedAmountSat = null
-                            parsedDescription = null
+                        // Run parse off the main thread — sdk.parse() is potentially blocking I/O.
+                        coroutineScope.launch {
+                            try {
+                                val (amountSat, description) = WalletManager.parseInvoiceAsync(code)
+                                parsedAmountSat = amountSat
+                                parsedDescription = description
+                                parseError = null
+                            } catch (e: Exception) {
+                                parseError = e.message ?: "Failed to parse invoice"
+                                parsedAmountSat = null
+                                parsedDescription = null
+                            }
+                            showParsedAlert = true
                         }
-                        showParsedAlert = true
                     }
                 )
             } else {
@@ -275,17 +278,20 @@ fun InvoiceScannerScreen(
                 Button(
                     onClick = {
                         if (pastedInvoice.trim().isNotEmpty()) {
-                            try {
-                                val (amountSat, description) = WalletManager.parseInvoice(pastedInvoice.trim())
-                                parsedAmountSat = amountSat
-                                parsedDescription = description
-                                parseError = null
-                            } catch (e: Exception) {
-                                parseError = e.message ?: "Failed to parse invoice"
-                                parsedAmountSat = null
-                                parsedDescription = null
+                            // Run parse off the main thread — sdk.parse() is potentially blocking I/O.
+                            coroutineScope.launch {
+                                try {
+                                    val (amountSat, description) = WalletManager.parseInvoiceAsync(pastedInvoice.trim())
+                                    parsedAmountSat = amountSat
+                                    parsedDescription = description
+                                    parseError = null
+                                } catch (e: Exception) {
+                                    parseError = e.message ?: "Failed to parse invoice"
+                                    parsedAmountSat = null
+                                    parsedDescription = null
+                                }
+                                showParsedAlert = true
                             }
-                            showParsedAlert = true
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),

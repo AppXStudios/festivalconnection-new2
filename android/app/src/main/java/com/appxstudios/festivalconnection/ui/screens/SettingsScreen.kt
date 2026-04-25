@@ -145,7 +145,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .background(SurfaceDark, RoundedCornerShape(16.dp))
             ) {
-                SettingsRow(icon = Icons.Filled.AccountBalanceWallet, label = "Wallet", detail = String.format("$%.2f", balanceUSD), onClick = onWallet)
+                SettingsRow(icon = Icons.Filled.AccountBalanceWallet, label = "Wallet", detail = String.format(java.util.Locale.US, "$%.2f", balanceUSD), onClick = onWallet)
                 HorizontalDivider(color = SurfaceMedium)
                 SettingsRow(icon = Icons.Filled.Language, label = "Nostr Relays", detail = "$relayCount connected")
                 HorizontalDivider(color = SurfaceMedium)

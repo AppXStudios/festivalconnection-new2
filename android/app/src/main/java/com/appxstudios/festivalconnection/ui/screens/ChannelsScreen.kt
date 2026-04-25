@@ -37,6 +37,7 @@ fun ChannelsScreen(
     var showCreateSheet by remember { mutableStateOf(false) }
     var showFilterDialog by remember { mutableStateOf(false) }
     var showNotificationsDialog by remember { mutableStateOf(false) }
+    var createError by remember { mutableStateOf<String?>(null) }
     val channels = remember { mutableStateListOf<ChannelInfo>() }
     var channelName by remember { mutableStateOf("") }
     var channelDesc by remember { mutableStateOf("") }
@@ -233,9 +234,20 @@ fun ChannelsScreen(
         CreateChannelBottomSheet(
             onDismiss = { showCreateSheet = false },
             onCreate = { name, desc ->
-                // Publish kind-40 NIP-28 channel creation event
+                // Publish kind-40 NIP-28 channel creation event.
+                // publishEvent returns the number of relays we sent to. If zero,
+                // there are no connected relays — surface an error and skip the
+                // optimistic local add so the UI does not show a "ghost" channel
+                // that no other peer can ever discover.
+                // TODO: full reliability requires correlating RelayMessage.Ok by
+                // event id (OK-ack tracking) — this only confirms send, not accept.
                 val channelEvent = NostrChannels.createChannel(name, desc)
-                NostrRelayManager.publishEvent(channelEvent)
+                val sentCount = NostrRelayManager.publishEvent(channelEvent)
+                if (sentCount == 0) {
+                    createError = "No relays connected — channel not created"
+                    showCreateSheet = false
+                    return@CreateChannelBottomSheet
+                }
 
                 // Use the Nostr event ID as the channel ID. Seed creator and member
                 // set so memberCount is at least 1 immediately (matches iOS).
@@ -248,6 +260,20 @@ fun ChannelsScreen(
                 ))
                 showCreateSheet = false
             }
+        )
+    }
+
+    if (createError != null) {
+        AlertDialog(
+            onDismissRequest = { createError = null },
+            title = { Text("Could not create channel", color = Color.White) },
+            text = { Text(createError ?: "", color = TextSecondary) },
+            confirmButton = {
+                TextButton(onClick = { createError = null }) {
+                    Text("OK", color = AccentPink)
+                }
+            },
+            containerColor = SurfaceDark
         )
     }
 }

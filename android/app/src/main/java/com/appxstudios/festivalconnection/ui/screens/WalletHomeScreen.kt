@@ -73,7 +73,7 @@ fun WalletHomeScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             GradientText(
-                "$${String.format("%.2f", balanceUSD)}",
+                "$${String.format(Locale.US, "%.2f", balanceUSD)}",
                 fontSize = 48.sp,
                 fontWeight = FontWeight.ExtraBold
             )

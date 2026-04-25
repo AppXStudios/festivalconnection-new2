@@ -47,9 +47,17 @@ object NostrRelayManager {
         _connectedRelayCount.value = 0
     }
 
-    fun publishEvent(event: NostrEvent) {
+    /**
+     * Publish an event to all connected relays.
+     * Returns the number of relays we sent to. Note: this is *send* count, not
+     * delivery confirmation — full OK-ack tracking would require correlating
+     * RelayMessage.Ok responses by event id, which we do not yet do.
+     */
+    fun publishEvent(event: NostrEvent): Int {
         val message = ClientMessage.Event(event).serialized()
-        connections.values.filter { it.status == RelayStatus.CONNECTED }.forEach { it.send(message) }
+        val targets = connections.values.filter { it.status == RelayStatus.CONNECTED }
+        targets.forEach { it.send(message) }
+        return targets.size
     }
 
     fun subscribe(filter: NostrFilter): String {

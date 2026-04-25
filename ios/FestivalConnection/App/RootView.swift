@@ -144,26 +144,17 @@ struct RootView: View {
                 appState.addMessage(msg, forPeer: senderHex)
             }
         }
-        PacketProcessor.shared.onPaymentNotification = { hash, amount, direction in
+        PacketProcessor.shared.onPaymentNotification = { _, _, _ in
             Task { @MainActor in
-                // Refresh wallet balance on incoming payment notification
+                // Per audit L5/M5: paymentNotification packets carry only the payment hash
+                // (not a sender pubkey), so we cannot reliably attribute the notification
+                // to a specific chat thread. Deriving a "senderHex" from hash bytes would
+                // create a phantom conversation entry that does not match any real peer.
+                // Instead, we just refresh the wallet — the user sees the new transaction
+                // in the wallet UI, and the payment-request bubble (if any) flips to "Paid"
+                // via setPaymentConfirmed when the matching kind-4/0x30 receipt arrives.
                 WalletManager.shared.refreshBalance()
                 WalletManager.shared.refreshTransactions()
-                // Add UI bubble per audit M5 — surface incoming payment as a chat notification.
-                // We don't always know the peer key in the mesh case, so route by hash if possible;
-                // fallback: append to the most recently active conversation.
-                let senderHex = hash.prefix(8).map { String(format: "%02x", $0) }.joined()
-                var msg = ChatMessage(
-                    senderKey: senderHex,
-                    recipientKey: NostrIdentity.shared.publicKeyHex,
-                    content: "",
-                    isIncoming: direction == 0,
-                    messageType: 0x31
-                )
-                msg.paymentAmount = amount
-                msg.paymentHash = hash
-                msg.paymentDirection = direction
-                appState.addMessage(msg, forPeer: senderHex)
             }
         }
     }

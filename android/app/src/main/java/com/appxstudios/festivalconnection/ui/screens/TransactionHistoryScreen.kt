@@ -182,7 +182,7 @@ private fun TransactionRow(tx: WalletTransaction) {
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = "%s$%.2f".format(amountPrefix, tx.amountUSD),
+                    text = String.format(Locale.US, "%s$%.2f", amountPrefix, tx.amountUSD),
                     color = directionColor,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold

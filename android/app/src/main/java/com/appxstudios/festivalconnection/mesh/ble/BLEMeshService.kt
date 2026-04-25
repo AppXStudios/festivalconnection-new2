@@ -1,9 +1,12 @@
 package com.appxstudios.festivalconnection.mesh.ble
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.*
 import android.bluetooth.le.*
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.ParcelUuid
 import com.appxstudios.festivalconnection.BuildConfig
 import com.appxstudios.festivalconnection.protocol.CrowdSyncBinaryProtocol
@@ -62,6 +65,22 @@ class BLEMeshService(private val context: Context) {
     }
 
     fun start() {
+        // Idempotent — if we're already running, do nothing.
+        // This lets MainActivity safely retry start() after onboarding grants permissions.
+        if (_isRunning.value) return
+
+        // Defensive guard — silently skip if BLE permissions are missing.
+        // The onboarding flow normally grants these before start() is called,
+        // but MainActivity may invoke start() before PermissionsScreen completes.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED ||
+                context.checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED ||
+                context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                android.util.Log.w("BLEMeshService", "BLE permissions not granted, deferring start()")
+                return
+            }
+        }
+
         bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
         bluetoothAdapter = bluetoothManager?.adapter ?: return
 

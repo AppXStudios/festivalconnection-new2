@@ -36,7 +36,7 @@ fun PayScreen(
     val usdSubtitle = remember(parsedSats, balanceSat, balanceUsd) {
         if (parsedSats > 0 && balanceSat > 0 && balanceUsd > 0.0) {
             val usdPerSat = balanceUsd / balanceSat.toDouble()
-            "≈ $%.2f USD".format(parsedSats * usdPerSat)
+            String.format(java.util.Locale.US, "≈ $%.2f USD", parsedSats * usdPerSat)
         } else "$0.00 USD"
     }
 

@@ -46,7 +46,7 @@ fun InvoiceDisplayScreen(
     val timeString = remember(secondsRemaining) {
         val m = secondsRemaining / 60
         val s = secondsRemaining % 60
-        "%d:%02d".format(m, s)
+        String.format(java.util.Locale.US, "%d:%02d", m, s)
     }
 
     // Generate QR code bitmap
@@ -106,7 +106,7 @@ fun InvoiceDisplayScreen(
 
         // Amount
         Text(
-            text = "$%.2f".format(amountUSD),
+            text = String.format(java.util.Locale.US, "$%.2f", amountUSD),
             color = Color.White,
             fontSize = 28.sp,
             fontWeight = FontWeight.ExtraBold

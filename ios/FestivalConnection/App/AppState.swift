@@ -44,7 +44,11 @@ final class AppState: ObservableObject {
         )
         channelDiscoverySubId = relay.subscribe(filter: discoveryFilter)
 
-        // Subscribe to all channel messages (kind-42) for the nearby live feed
+        // Subscribe to all channel messages (kind-42) for the nearby live feed.
+        // Per audit M2: we deliberately do NOT filter by `authors` here because that
+        // would prevent discovery of new peers in the nearby feed (peers are populated
+        // dynamically). Spam/JSON filtering happens in handleNostrEvent at the kind-42
+        // handler level (see content checks below).
         var feedFilter = NostrFilter()
         feedFilter.kinds = [42]
         feedFilter.since = Int64(Date().timeIntervalSince1970) - 3600
@@ -145,10 +149,11 @@ final class AppState: ObservableObject {
             }
 
         case 40:
-            // Channel creation event (NIP-28)
+            // Channel creation event (NIP-28). Per audit L4, don't drop legitimate
+            // channels that happen to have an empty name — fall back to a placeholder.
             guard let meta = NostrChannels.parseChannelCreation(event) else { return }
-            guard !meta.name.isEmpty else { return }
-            var channel = ChannelInfo(id: event.id, name: meta.name)
+            let displayName = meta.name.isEmpty ? "Untitled Channel" : meta.name
+            var channel = ChannelInfo(id: event.id, name: displayName)
             channel.creatorPublicKeyHex = event.pubkey
             channel.creatorDisplayName = "Peer \(String(event.pubkey.prefix(8)))"
             channel.channelDescription = meta.about

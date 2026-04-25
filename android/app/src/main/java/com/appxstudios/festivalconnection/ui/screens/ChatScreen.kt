@@ -53,6 +53,7 @@ fun ChatScreen(
     var showPaymentDialog by remember { mutableStateOf(false) }
     var paymentAmount by remember { mutableStateOf("") }
     var paymentDescription by remember { mutableStateOf("") }
+    var sendError by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -195,21 +196,26 @@ fun ChatScreen(
                                         "description" to descSnapshot
                                     ))
                                     val dmEvent = NostrDM.createDirectMessage(peerKey, envelope)
-                                    dmEvent?.let { NostrRelayManager.publishEvent(it) }
-
-                                    // Reflect locally so the sender sees their request bubble
-                                    messages.add(ChatMessage(
-                                        senderKey = NostrIdentity.publicKeyHex,
-                                        recipientKey = peerKey,
-                                        content = "",
-                                        isIncoming = false,
-                                        messageType = 0x10,
-                                        paymentInvoice = invoice,
-                                        paymentAmount = amount,
-                                        paymentDescription = descSnapshot
-                                    ))
+                                    if (dmEvent == null) {
+                                        // Encrypt failed — show error, do NOT add the local bubble.
+                                        sendError = "Could not encrypt payment request — invalid peer key"
+                                    } else {
+                                        NostrRelayManager.publishEvent(dmEvent)
+                                        // Reflect locally so the sender sees their request bubble
+                                        messages.add(ChatMessage(
+                                            senderKey = NostrIdentity.publicKeyHex,
+                                            recipientKey = peerKey,
+                                            content = "",
+                                            isIncoming = false,
+                                            messageType = 0x10,
+                                            paymentInvoice = invoice,
+                                            paymentAmount = amount,
+                                            paymentDescription = descSnapshot
+                                        ))
+                                    }
                                 } catch (e: Exception) {
                                     println("[Chat] Payment request creation failed: ${e.message}")
+                                    sendError = "Payment request failed: ${e.message ?: "unknown error"}"
                                 }
                             }
 
@@ -244,29 +250,62 @@ fun ChatScreen(
         containerColor = BackgroundBlack,
         topBar = { ChatTopBar(peerName, onBack) },
         bottomBar = {
-            ChatInputBar(
-                messageText = messageText,
-                onMessageTextChange = { messageText = it },
-                onSend = {
+            Column {
+                // Inline send-error banner — shown only when the optimistic bubble
+                // could not actually be encrypted/published. Tap to dismiss.
+                sendError?.let { err ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(SurfaceDark)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            err,
+                            color = AccentPink,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = 24.dp)
+                        )
+                        TextButton(
+                            onClick = { sendError = null },
+                            modifier = Modifier.align(Alignment.CenterEnd)
+                        ) {
+                            Text("Dismiss", color = TextSecondary, fontSize = 12.sp)
+                        }
+                    }
+                }
+                ChatInputBar(
+                    messageText = messageText,
+                    onMessageTextChange = { messageText = it },
+                    onSend = {
                     if (messageText.isNotBlank()) {
                         val text = messageText.trim()
-                        messages.add(ChatMessage(
+                        val localMsg = ChatMessage(
                             senderKey = NostrIdentity.publicKeyHex,
                             recipientKey = peerKey,
                             content = text,
                             isIncoming = false
-                        ))
+                        )
+                        messages.add(localMsg)
                         messageText = ""
 
-                        // Send via Nostr NIP-04 DM
+                        // Send via Nostr NIP-04 DM. createDirectMessage returns null
+                        // if the peer pubkey is malformed or ECDH derivation fails —
+                        // surface that to the user and remove the optimistic bubble.
                         val dmEvent = NostrDM.createDirectMessage(peerKey, text)
-                        dmEvent?.let { NostrRelayManager.publishEvent(it) }
-
-                        // Network delivery is handled by the NostrDM publish above
+                        if (dmEvent == null) {
+                            messages.remove(localMsg)
+                            sendError = "Could not encrypt message — invalid peer key"
+                        } else {
+                            NostrRelayManager.publishEvent(dmEvent)
+                        }
                     }
                 },
-                onPayment = { showPaymentDialog = true }
-            )
+                    onPayment = { showPaymentDialog = true }
+                )
+            }
         }
     ) { innerPadding ->
         LazyColumn(

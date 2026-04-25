@@ -31,6 +31,11 @@ object NostrIdentity {
     }
 
     fun initialize(context: Context) {
+        // Idempotency guard — re-running initialize() would clobber the in-memory
+        // privateKeyBytes / publicKeyHex even though it would always re-read the
+        // same key from EncryptedSharedPreferences. Mirrors IdentityManager's pattern.
+        if (isInitialized) return
+
         val prefs = getEncryptedPrefs(context)
         val existingHex = prefs.getString(KEY_PRIVATE, null)
 
