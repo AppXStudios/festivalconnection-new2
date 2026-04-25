@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
 import com.appxstudios.festivalconnection.ui.theme.*
 import com.appxstudios.festivalconnection.ui.theme.GradientIcon
+import com.google.gson.Gson
 
 @Composable
 fun EditProfileSheet(
@@ -102,8 +103,15 @@ fun EditProfileSheet(
                         .putString("fc_about", aboutText)
                         .apply()
 
-                    // Broadcast updated profile via Nostr kind-0 metadata
-                    val profileJson = """{"name":"$trimmedName","display_name":"$trimmedName","nip05":"$trimmedHandle","about":"$aboutText"}"""
+                    // Broadcast updated profile via Nostr kind-0 metadata.
+                    // Use Gson to serialize so embedded quotes/newlines/backslashes in
+                    // any field cannot produce malformed JSON.
+                    val profileJson = Gson().toJson(mapOf(
+                        "name" to trimmedName,
+                        "display_name" to trimmedName,
+                        "nip05" to trimmedHandle,
+                        "about" to aboutText
+                    ))
                     val metadataEvent = com.appxstudios.festivalconnection.mesh.nostr.NostrEvent.create(
                         kind = 0, content = profileJson
                     )

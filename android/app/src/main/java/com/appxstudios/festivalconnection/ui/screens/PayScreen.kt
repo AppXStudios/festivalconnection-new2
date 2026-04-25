@@ -21,13 +21,23 @@ import com.appxstudios.festivalconnection.ui.theme.*
 @Composable
 fun PayScreen(
     onCancel: () -> Unit = {},
-    onNext: (amountCents: String, description: String) -> Unit = { _, _ -> }
+    onNext: (amountSat: String, description: String) -> Unit = { _, _ -> }
 ) {
     var amount by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
 
-    val isValid = remember(amount) {
-        amount.toDoubleOrNull()?.let { it > 0 } ?: false
+    // Amount is now sat-denominated (integer). Reject zero / parse failures.
+    val parsedSats = remember(amount) { amount.toLongOrNull() ?: 0L }
+    val isValid = parsedSats > 0
+
+    // Live USD subtitle from the wallet's current rate.
+    val balanceSat by com.appxstudios.festivalconnection.services.WalletManager.balanceSat.collectAsState()
+    val balanceUsd by com.appxstudios.festivalconnection.services.WalletManager.balanceUSD.collectAsState()
+    val usdSubtitle = remember(parsedSats, balanceSat, balanceUsd) {
+        if (parsedSats > 0 && balanceSat > 0 && balanceUsd > 0.0) {
+            val usdPerSat = balanceUsd / balanceSat.toDouble()
+            "≈ $%.2f USD".format(parsedSats * usdPerSat)
+        } else "$0.00 USD"
     }
 
     Column(
@@ -49,7 +59,7 @@ fun PayScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                "Pay",
+                "Pay (sats)",
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold
@@ -81,17 +91,22 @@ fun PayScreen(
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Amount display
+        // Amount label - sat denomination, with USD as the live subtitle.
+        // Replaces the previous BTC-symbol header which paired with USD-styled
+        // digits and confused users about the unit being entered.
         Text(
-            "\u20BF",
+            "Amount (sats)",
             color = TextSecondary,
-            fontSize = 20.sp,
+            fontSize = 14.sp,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
 
         BasicTextField(
             value = amount,
-            onValueChange = { amount = it },
+            onValueChange = { newValue ->
+                // Only digits in sat mode - Long can't carry a fractional sat.
+                amount = newValue.filter { it.isDigit() }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
@@ -116,7 +131,7 @@ fun PayScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            "$0.00 USD",
+            usdSubtitle,
             color = TextSecondary,
             fontSize = 16.sp,
             modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -145,9 +160,12 @@ fun PayScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Numeric keypad
+        // Numeric keypad - reject decimal input in sat mode (integer-only).
         com.appxstudios.festivalconnection.ui.components.NumericKeypad(
-            onDigit = { digit -> amount += digit },
+            onDigit = { digit ->
+                if (digit == ".") return@NumericKeypad
+                amount += digit
+            },
             onBackspace = { if (amount.isNotEmpty()) amount = amount.dropLast(1) }
         )
     }

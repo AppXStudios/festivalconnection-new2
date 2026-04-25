@@ -20,6 +20,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.appxstudios.festivalconnection.mesh.nostr.NostrEventDispatcher
 import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
 import com.appxstudios.festivalconnection.models.ChannelMessage
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
@@ -27,26 +28,32 @@ import com.appxstudios.festivalconnection.ui.theme.*
 
 @Composable
 fun NearbyScreen() {
-    var feedMessages by remember { mutableStateOf(listOf<ChannelMessage>()) }
+    val feedMessages = remember { mutableStateListOf<ChannelMessage>() }
     val connectedRelayCount by NostrRelayManager.connectedRelayCount.collectAsState()
     val isConnected = connectedRelayCount > 0
 
-    // Collect incoming Nostr events into feed messages
-    DisposableEffect(Unit) {
-        val previousHandler = NostrRelayManager.onEvent
-        NostrRelayManager.onEvent = { event ->
-            val msg = ChannelMessage(
+    // Collect incoming Nostr events from the central dispatcher into the feed.
+    // Using the dispatcher instead of overwriting NostrRelayManager.onEvent prevents
+    // breaking ChatScreen / ChannelChatScreen reception.
+    LaunchedEffect(Unit) {
+        NostrEventDispatcher.events.collect { event ->
+            // Only kind-42 channel messages belong in the Nearby feed
+            if (event.kind != 42) return@collect
+            val content = event.content
+            if (content.isEmpty() || content.length > 500) return@collect
+            if (content.startsWith("{") || content.startsWith("[")) return@collect  // skip raw JSON
+
+            feedMessages.add(0, ChannelMessage(
                 id = event.id,
                 channelId = "",
                 senderPublicKeyHex = event.pubkey,
-                senderDisplayName = "Peer ${event.pubkey.take(4).uppercase()}",
-                content = event.content,
-                timestamp = event.createdAt * 1000L
-            )
-            feedMessages = (listOf(msg) + feedMessages).take(100)
-        }
-        onDispose {
-            NostrRelayManager.onEvent = previousHandler
+                senderDisplayName = "Peer ${event.pubkey.take(8)}",
+                content = content,
+                timestamp = event.createdAt * 1000
+            ))
+            if (feedMessages.size > 200) {
+                feedMessages.removeAt(feedMessages.lastIndex)
+            }
         }
     }
 

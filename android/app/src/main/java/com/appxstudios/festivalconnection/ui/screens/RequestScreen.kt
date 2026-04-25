@@ -18,14 +18,29 @@ import com.appxstudios.festivalconnection.ui.theme.*
 @Composable
 fun RequestScreen(
     onCancel: () -> Unit = {},
-    onCreateRequest: (amountCents: String, description: String) -> Unit = { _, _ -> }
+    onCreateRequest: (amountSat: String, description: String) -> Unit = { _, _ -> }
 ) {
     var amount by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
 
-    val displayAmount = remember(amount) {
-        val value = amount.toDoubleOrNull() ?: 0.0
-        "$%.2f".format(value / 100.0)
+    // Display the entered digits as a sat-denominated amount.
+    // Previously this divided by 100 and formatted as USD, but the value passed
+    // downstream was always treated as sats by `WalletManager.createInvoice`,
+    // so a "$5.00" display would mint a 500-sat (~$0.30) invoice. Showing sats
+    // directly removes that whole unit-mismatch class of bugs.
+    val parsedSats = remember(amount) { amount.toLongOrNull() ?: 0L }
+    val displayAmount = remember(parsedSats) {
+        if (parsedSats > 0) "$parsedSats sats" else "0 sats"
+    }
+
+    // Optional USD subtitle derived from the live wallet rate.
+    val balanceSat by com.appxstudios.festivalconnection.services.WalletManager.balanceSat.collectAsState()
+    val balanceUsd by com.appxstudios.festivalconnection.services.WalletManager.balanceUSD.collectAsState()
+    val usdSubtitle = remember(parsedSats, balanceSat, balanceUsd) {
+        if (parsedSats > 0 && balanceSat > 0 && balanceUsd > 0.0) {
+            val usdPerSat = balanceUsd / balanceSat.toDouble()
+            "≈ $%.2f USD".format(parsedSats * usdPerSat)
+        } else null
     }
 
     Column(
@@ -49,7 +64,7 @@ fun RequestScreen(
 
         // Title
         Text(
-            "Request",
+            "Request (sats)",
             fontWeight = FontWeight.ExtraBold,
             fontSize = 28.sp,
             color = Color.White,
@@ -58,13 +73,22 @@ fun RequestScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        // Dollar amount display
+        // Sat-denominated amount display
         Text(
             text = displayAmount,
             color = Color.White,
             fontSize = 48.sp,
             fontWeight = FontWeight.ExtraBold
         )
+
+        if (usdSubtitle != null) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = usdSubtitle,
+                color = TextSecondary,
+                fontSize = 14.sp
+            )
+        }
 
         Spacer(Modifier.height(20.dp))
 
@@ -93,16 +117,13 @@ fun RequestScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        // Numeric keypad
+        // Numeric keypad. Sats are integer-only — drop the decimal point even if the
+        // shared NumericKeypad component renders one; the createInvoice() backend
+        // expects a Long sat count.
         NumericKeypad(
             onDigit = { digit ->
-                if (digit == ".") {
-                    if (!amount.contains(".")) {
-                        amount += digit
-                    }
-                } else {
-                    amount += digit
-                }
+                if (digit == ".") return@NumericKeypad
+                amount += digit
             },
             onBackspace = {
                 if (amount.isNotEmpty()) {

@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.appxstudios.festivalconnection.models.PeerInfo
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
 import com.appxstudios.festivalconnection.ui.theme.*
+import com.appxstudios.festivalconnection.ui.util.rememberStringSetPref
 
 @Composable
 fun ChatsScreen(
@@ -36,11 +37,12 @@ fun ChatsScreen(
     var searchText by remember { mutableStateOf("") }
     var showNewChatSheet by remember { mutableStateOf(false) }
 
-    // Read conversations from SharedPreferences
+    // Reactively read connected peers from SharedPreferences so that newly-discovered
+    // peers via mesh appear without forcing a screen reload.
     val prefs = remember { context.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE) }
-    val peerKeys = remember { prefs.getStringSet("connected_peers", emptySet())?.toList() ?: emptyList() }
-    val conversations = remember(peerKeys) {
-        peerKeys.map { key ->
+    val peerKeySet by rememberStringSetPref(context, "fc_prefs", "connected_peers")
+    val conversations = remember(peerKeySet, searchText) {
+        peerKeySet.toList().map { key ->
             val name = prefs.getString("peer_handle_$key", null) ?: "Peer ${key.take(4).uppercase()}"
             PeerInfo(publicKeyHex = key, displayName = name, handle = key.take(8), lastSeen = System.currentTimeMillis())
         }.filter { peer ->

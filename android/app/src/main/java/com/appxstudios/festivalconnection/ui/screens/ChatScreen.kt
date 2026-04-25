@@ -35,6 +35,7 @@ import com.appxstudios.festivalconnection.security.NostrIdentity
 import com.appxstudios.festivalconnection.services.WalletManager
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
 import com.appxstudios.festivalconnection.ui.theme.*
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,49 +54,70 @@ fun ChatScreen(
     var paymentAmount by remember { mutableStateOf("") }
     var paymentDescription by remember { mutableStateOf("") }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     // Subscribe to incoming NIP-04 DMs for the current user and keep a live feed
-    // of messages from this specific peer. The dispatcher fans out the single
-    // NostrRelayManager.onEvent callback to every screen that cares.
-    LaunchedEffect(peerKey) {
+    // of messages from this specific peer. DisposableEffect so we unsubscribe and
+    // cancel the collector job on exit; the previous LaunchedEffect leaked a
+    // relay subscription handle on every navigation.
+    DisposableEffect(peerKey) {
         val dmFilter = NostrFilter(
             kinds = listOf(4),
             since = (System.currentTimeMillis() / 1000) - 86400,
             pTags = listOf(NostrIdentity.publicKeyHex)
         )
-        NostrRelayManager.subscribe(dmFilter)
-
-        NostrEventDispatcher.events.collect { event ->
-            if (event.kind == 4 && event.pubkey == peerKey) {
+        val subId = NostrRelayManager.subscribe(dmFilter)
+        val collectorJob = scope.launch {
+            NostrEventDispatcher.events.collect { event ->
+                if (event.kind != 4 || event.pubkey != peerKey) return@collect
                 // Avoid duplicates if the relay resends the same event
                 if (messages.any { it.id == event.id }) return@collect
 
-                val decrypted = NostrDM.decrypt(event.content, event.pubkey)
-                if (decrypted != null) {
-                    messages.add(
-                        ChatMessage(
-                            id = event.id,
-                            senderKey = event.pubkey,
-                            recipientKey = NostrIdentity.publicKeyHex,
-                            content = decrypted,
-                            isIncoming = true
-                        )
-                    )
+                val decrypted = NostrDM.decrypt(event.content, event.pubkey) ?: return@collect
 
-                    // Remember this peer so they show up in the Chats list
-                    val prefs = context.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE)
-                    val existing = prefs.getStringSet("connected_peers", mutableSetOf()) ?: mutableSetOf()
-                    if (!existing.contains(event.pubkey)) {
-                        val updated = existing.toMutableSet().apply { add(event.pubkey) }
-                        val handle = prefs.getString("peer_handle_${event.pubkey}", null)
-                            ?: event.pubkey.take(8).lowercase()
-                        prefs.edit()
-                            .putStringSet("connected_peers", updated)
-                            .putString("peer_handle_${event.pubkey}", handle)
-                            .apply()
-                    }
+                // Try to parse the decrypted body as a payment_request JSON envelope.
+                // If parse succeeds, build a payment-request bubble; otherwise treat as plain text.
+                val parsedRequest = parsePaymentRequest(decrypted)
+                val newMessage = if (parsedRequest != null) {
+                    ChatMessage(
+                        id = event.id,
+                        senderKey = event.pubkey,
+                        recipientKey = NostrIdentity.publicKeyHex,
+                        content = "",
+                        isIncoming = true,
+                        messageType = 0x10,
+                        paymentInvoice = parsedRequest.invoice,
+                        paymentAmount = parsedRequest.amount,
+                        paymentDescription = parsedRequest.description
+                    )
+                } else {
+                    ChatMessage(
+                        id = event.id,
+                        senderKey = event.pubkey,
+                        recipientKey = NostrIdentity.publicKeyHex,
+                        content = decrypted,
+                        isIncoming = true
+                    )
+                }
+                messages.add(newMessage)
+
+                // Remember this peer so they show up in the Chats list
+                val prefs = context.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE)
+                val existing = prefs.getStringSet("connected_peers", mutableSetOf()) ?: mutableSetOf()
+                if (!existing.contains(event.pubkey)) {
+                    val updated = existing.toMutableSet().apply { add(event.pubkey) }
+                    val handle = prefs.getString("peer_handle_${event.pubkey}", null)
+                        ?: event.pubkey.take(8).lowercase()
+                    prefs.edit()
+                        .putStringSet("connected_peers", updated)
+                        .putString("peer_handle_${event.pubkey}", handle)
+                        .apply()
                 }
             }
+        }
+        onDispose {
+            collectorJob.cancel()
+            NostrRelayManager.unsubscribe(subId)
         }
     }
 
@@ -154,20 +176,42 @@ fun ChatScreen(
                     onClick = {
                         val amount = paymentAmount.toLongOrNull()
                         if (amount != null && amount > 0) {
-                            messages.add(ChatMessage(
-                                senderKey = NostrIdentity.publicKeyHex,
-                                recipientKey = peerKey,
-                                content = "",
-                                isIncoming = false,
-                                messageType = 0x10,
-                                paymentAmount = amount,
-                                paymentDescription = paymentDescription
-                            ))
+                            val descSnapshot = paymentDescription
+                            // Mint a real BOLT11 invoice on the Breez wallet then
+                            // wrap (invoice, amount, description) in a JSON envelope so
+                            // the receiver can render a Pay-Now bubble. The previous
+                            // "payment_request:$amount:$desc" plain-text format showed
+                            // as raw text on the receiver and had no payable invoice.
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val invoice = WalletManager.createInvoice(
+                                        amountSat = amount,
+                                        description = descSnapshot
+                                    )
+                                    val envelope = Gson().toJson(mapOf(
+                                        "type" to "payment_request",
+                                        "invoice" to invoice,
+                                        "amount" to amount,
+                                        "description" to descSnapshot
+                                    ))
+                                    val dmEvent = NostrDM.createDirectMessage(peerKey, envelope)
+                                    dmEvent?.let { NostrRelayManager.publishEvent(it) }
 
-                            // Send payment request via Nostr DM
-                            val reqText = "payment_request:$amount:${paymentDescription}"
-                            val dmEvent = NostrDM.createDirectMessage(peerKey, reqText)
-                            dmEvent?.let { NostrRelayManager.publishEvent(it) }
+                                    // Reflect locally so the sender sees their request bubble
+                                    messages.add(ChatMessage(
+                                        senderKey = NostrIdentity.publicKeyHex,
+                                        recipientKey = peerKey,
+                                        content = "",
+                                        isIncoming = false,
+                                        messageType = 0x10,
+                                        paymentInvoice = invoice,
+                                        paymentAmount = amount,
+                                        paymentDescription = descSnapshot
+                                    ))
+                                } catch (e: Exception) {
+                                    println("[Chat] Payment request creation failed: ${e.message}")
+                                }
+                            }
 
                             showPaymentDialog = false
                             paymentAmount = ""
@@ -469,4 +513,40 @@ private fun PaymentNotificationBubble(msg: ChatMessage) {
 private fun formatTimestamp(timestamp: Long): String {
     val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
     return sdf.format(Date(timestamp))
+}
+
+private data class ParsedPaymentRequest(
+    val invoice: String,
+    val amount: Long,
+    val description: String
+)
+
+/**
+ * Try to parse a decrypted DM body as a payment_request JSON envelope.
+ *
+ * Expected shape: { "type":"payment_request", "invoice":"...", "amount":1000, "description":"..." }
+ *
+ * Returns null if the body is plain text, missing fields, or malformed JSON — the
+ * caller treats null as "show as a regular text bubble".
+ */
+private fun parsePaymentRequest(body: String): ParsedPaymentRequest? {
+    // Cheap pre-check: avoid hitting Gson for every chat message.
+    val trimmed = body.trim()
+    if (!trimmed.startsWith("{") || !trimmed.contains("payment_request")) return null
+    return try {
+        @Suppress("UNCHECKED_CAST")
+        val map = Gson().fromJson(trimmed, Map::class.java) as? Map<String, Any?> ?: return null
+        if (map["type"] != "payment_request") return null
+        val invoice = map["invoice"] as? String ?: return null
+        if (invoice.isBlank()) return null
+        val amount = when (val a = map["amount"]) {
+            is Number -> a.toLong()
+            is String -> a.toLongOrNull() ?: return null
+            else -> return null
+        }
+        val description = map["description"] as? String ?: ""
+        ParsedPaymentRequest(invoice, amount, description)
+    } catch (_: Exception) {
+        null
+    }
 }

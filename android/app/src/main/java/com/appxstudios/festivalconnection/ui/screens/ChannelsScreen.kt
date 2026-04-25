@@ -23,7 +23,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.appxstudios.festivalconnection.models.ChannelInfo
 import com.appxstudios.festivalconnection.mesh.nostr.NostrChannels
+import com.appxstudios.festivalconnection.mesh.nostr.NostrEventDispatcher
 import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
+import com.appxstudios.festivalconnection.security.NostrIdentity
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
 import com.appxstudios.festivalconnection.ui.theme.*
 
@@ -39,27 +41,46 @@ fun ChannelsScreen(
     var channelName by remember { mutableStateOf("") }
     var channelDesc by remember { mutableStateOf("") }
 
-    // Subscribe to kind-40 channel creation events for discovery
+    // Subscribe to kind-40 channel creation events for discovery.
+    // Collect from the central dispatcher instead of overwriting NostrRelayManager.onEvent
+    // — the previousHandler chain pattern leaks unboundedly on recomposition.
     LaunchedEffect(Unit) {
         val filter = NostrChannels.channelDiscoveryFilter()
         NostrRelayManager.subscribe(filter)
 
-        val previousHandler = NostrRelayManager.onEvent
-        NostrRelayManager.onEvent = { event ->
-            previousHandler?.invoke(event)
-            if (event.kind == 40) {
-                val parsed = NostrChannels.parseChannelCreation(event)
-                if (parsed != null) {
-                    val (name, about, _) = parsed
-                    val exists = channels.any { it.id == event.id }
-                    if (!exists && name.isNotBlank()) {
-                        channels.add(ChannelInfo(
-                            id = event.id,
-                            name = name,
-                            channelDescription = about
-                        ))
-                    }
-                }
+        NostrEventDispatcher.events.collect { event ->
+            if (event.kind != 40) return@collect
+            val parsed = NostrChannels.parseChannelCreation(event) ?: return@collect
+            val (name, about, _) = parsed
+            if (name.isEmpty()) return@collect
+            if (channels.any { it.id == event.id }) return@collect
+
+            channels.add(0, ChannelInfo(
+                id = event.id,
+                name = name,
+                creatorPublicKeyHex = event.pubkey,
+                memberPublicKeys = mutableSetOf(event.pubkey),
+                channelDescription = about
+            ))
+        }
+    }
+
+    // Track kind-42 channel messages so memberPublicKeys grows as senders post.
+    // memberCount on each ChannelInfo is derived from this set.
+    LaunchedEffect("channel-members") {
+        NostrEventDispatcher.events.collect { event ->
+            if (event.kind != 42) return@collect
+            val rootId = event.tags.firstOrNull { tag ->
+                tag.size >= 2 && tag[0] == "e"
+            }?.getOrNull(1) ?: return@collect
+            val idx = channels.indexOfFirst { it.id == rootId }
+            if (idx < 0) return@collect
+            val info = channels[idx]
+            if (info.memberPublicKeys.add(event.pubkey)) {
+                // Force recomposition by replacing the entry — memberCount is derived
+                // from a MutableSet inside a `data class`, so list mutation alone
+                // does not trigger Compose snapshot invalidation.
+                channels[idx] = info
             }
         }
     }
@@ -216,10 +237,13 @@ fun ChannelsScreen(
                 val channelEvent = NostrChannels.createChannel(name, desc)
                 NostrRelayManager.publishEvent(channelEvent)
 
-                // Use the Nostr event ID as the channel ID
+                // Use the Nostr event ID as the channel ID. Seed creator and member
+                // set so memberCount is at least 1 immediately (matches iOS).
                 channels.add(ChannelInfo(
                     id = channelEvent.id,
                     name = name,
+                    creatorPublicKeyHex = NostrIdentity.publicKeyHex,
+                    memberPublicKeys = mutableSetOf(NostrIdentity.publicKeyHex),
                     channelDescription = desc
                 ))
                 showCreateSheet = false

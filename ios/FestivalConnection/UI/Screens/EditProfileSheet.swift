@@ -13,6 +13,7 @@ struct EditProfileSheet: View {
     @State private var showCameraUnavailable = false
     @State private var handleConflict = false
     @State private var profileImageData: Data? = UserDefaults.standard.data(forKey: "fc_profile_picture")
+    @State private var selectedItem: PhotosPickerItem? = nil
 
     private let originalHandle: String
 
@@ -176,6 +177,17 @@ struct EditProfileSheet: View {
             .fullScreenCover(isPresented: $showCamera) {
                 CameraPickerView(imageData: $profileImageData)
                     .ignoresSafeArea()
+            }
+            .photosPicker(isPresented: $showImagePicker, selection: $selectedItem, matching: .images)
+            .onChange(of: selectedItem) { newItem in
+                Task {
+                    if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                        await MainActor.run {
+                            UserDefaults.standard.set(data, forKey: "fc_profile_picture")
+                            profileImageData = data
+                        }
+                    }
+                }
             }
         }
     }

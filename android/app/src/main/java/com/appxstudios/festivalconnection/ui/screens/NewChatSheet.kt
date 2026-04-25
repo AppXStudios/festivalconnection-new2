@@ -38,6 +38,7 @@ import com.appxstudios.festivalconnection.models.PeerInfo
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
 import com.appxstudios.festivalconnection.ui.theme.*
 import com.appxstudios.festivalconnection.ui.theme.GradientIcon
+import com.appxstudios.festivalconnection.ui.util.rememberStringSetPref
 
 @Composable
 fun NewChatSheet(
@@ -45,25 +46,24 @@ fun NewChatSheet(
     onPeerSelected: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val peers = remember {
-        val prefs = context.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE)
-        val peerKeys = prefs.getStringSet("connected_peers", emptySet()) ?: emptySet()
-        mutableStateListOf<PeerInfo>().apply {
-            addAll(peerKeys.map { key ->
-                val handle = prefs.getString("peer_handle_$key", null) ?: key.take(8).lowercase()
-                PeerInfo(
-                    publicKeyHex = key,
-                    displayName = handle,
-                    handle = handle
-                )
-            })
+    val prefs = remember { context.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE) }
+    // Reactively read connected peers — picks up new peers discovered via mesh.
+    val peerKeySet by rememberStringSetPref(context, "fc_prefs", "connected_peers")
+    val peers = remember(peerKeySet) {
+        peerKeySet.map { key ->
+            val handle = prefs.getString("peer_handle_$key", null) ?: key.take(8).lowercase()
+            PeerInfo(
+                publicKeyHex = key,
+                displayName = handle,
+                handle = handle
+            )
         }
     }
     var searchText by remember { mutableStateOf("") }
 
-    val filteredPeers = remember(searchText, peers.size) {
+    val filteredPeers = remember(searchText, peers) {
         if (searchText.isEmpty()) {
-            peers.toList()
+            peers
         } else {
             peers.filter {
                 it.displayName.contains(searchText, ignoreCase = true)

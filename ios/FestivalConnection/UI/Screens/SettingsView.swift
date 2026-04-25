@@ -6,6 +6,7 @@ struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var identityManager: IdentityManager
     @ObservedObject private var wallet = WalletManager.shared
+    @ObservedObject private var relayManager = NostrRelayManager.shared
     @State private var showEditProfile = false
     @State private var showShareSheet = false
     @State private var searchText = ""
@@ -117,7 +118,7 @@ struct SettingsView: View {
                                     NearbyView()
                                 }
                                 Divider().background(FestivalTheme.surfaceMedium)
-                                settingsNavRow(icon: "arrow.triangle.2.circlepath", label: "Message Sync", detail: NostrRelayManager.shared.connectedRelayCount > 0 ? "Connected" : "Offline", iconColor: FestivalTheme.iconBlue) {
+                                settingsNavRow(icon: "arrow.triangle.2.circlepath", label: "Message Sync", detail: relayManager.connectedRelayCount > 0 ? "Connected" : "Offline", iconColor: FestivalTheme.iconBlue) {
                                     MessageSyncInfoView()
                                 }
                             }

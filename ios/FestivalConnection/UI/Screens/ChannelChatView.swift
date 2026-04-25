@@ -123,7 +123,12 @@ struct ChannelChatView: View {
         let myKey = IdentityManager.shared.publicKeyHex
         let myName = UserDefaults.standard.string(forKey: "fc_nickname") ?? IdentityManager.shared.displayName
 
+        // Build the Nostr event first so we can re-use its id locally; addChannelMessage
+        // dedups by id, so when the relay echo arrives it will be ignored.
+        let nostrEvent = NostrChannels.sendChannelMessage(channelId: channelId, content: messageText)
+
         let msg = ChannelMessage(
+            id: nostrEvent.id,
             channelId: channelId,
             senderPublicKeyHex: myKey,
             senderDisplayName: myName,
@@ -132,7 +137,6 @@ struct ChannelChatView: View {
         appState.addChannelMessage(msg)
 
         // Publish to Nostr relays (kind-42, NIP-28)
-        let nostrEvent = NostrChannels.sendChannelMessage(channelId: channelId, content: messageText)
         NostrRelayManager.shared.publishEvent(nostrEvent)
 
         messageText = ""

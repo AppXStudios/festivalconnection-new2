@@ -107,15 +107,41 @@ final class AppState: ObservableObject {
             }
 
         case 4:
+            // Skip our own outgoing DMs echoed back by the relay — prevents phantom
+            // self-conversations appearing in the chats list.
+            if event.pubkey == NostrIdentity.shared.publicKeyHex { return }
+
             // Kind 4: Encrypted DM
             if let decrypted = NostrDM.decrypt(encryptedContent: event.content, senderPubkeyHex: event.pubkey) {
-                let msg = ChatMessage(
-                    senderKey: event.pubkey,
-                    recipientKey: NostrIdentity.shared.publicKeyHex,
-                    content: decrypted,
-                    isIncoming: true
-                )
-                addMessage(msg, forPeer: event.pubkey)
+                // Try to parse as a structured payment payload first.
+                if let jsonData = decrypted.data(using: .utf8),
+                   let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+                   let type = json["type"] as? String,
+                   type == "payment_request" {
+                    let invoice = json["invoice"] as? String ?? ""
+                    let amount = (json["amount"] as? UInt64)
+                        ?? UInt64(json["amount"] as? Int ?? 0)
+                    let descText = json["description"] as? String ?? ""
+                    var msg = ChatMessage(
+                        senderKey: event.pubkey,
+                        recipientKey: NostrIdentity.shared.publicKeyHex,
+                        content: "Payment Request",
+                        isIncoming: true,
+                        messageType: 0x30
+                    )
+                    msg.paymentAmount = amount
+                    msg.paymentInvoice = invoice
+                    msg.paymentDescription = descText.isEmpty ? nil : descText
+                    addMessage(msg, forPeer: event.pubkey)
+                } else {
+                    let msg = ChatMessage(
+                        senderKey: event.pubkey,
+                        recipientKey: NostrIdentity.shared.publicKeyHex,
+                        content: decrypted,
+                        isIncoming: true
+                    )
+                    addMessage(msg, forPeer: event.pubkey)
+                }
             }
 
         case 40:
@@ -134,7 +160,10 @@ final class AppState: ObservableObject {
         case 42:
             // Channel message event (NIP-28)
             let channelId = event.tags.first(where: { $0.count >= 4 && $0[3] == "root" }).map { $0[1] } ?? ""
-            let senderName = "Peer \(String(event.pubkey.prefix(8)))"
+            // Prefer the live display name from any kind-0 metadata we already received
+            // for this peer; fall back to the short pubkey prefix.
+            let senderName = self.connectedPeers.first(where: { $0.publicKeyHex == event.pubkey })?.displayName
+                ?? "Peer \(String(event.pubkey.prefix(8)))"
             let msg = ChannelMessage(
                 id: event.id,
                 channelId: channelId,

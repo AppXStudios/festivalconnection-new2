@@ -27,6 +27,7 @@ import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
 import com.appxstudios.festivalconnection.security.NostrIdentity
 import com.appxstudios.festivalconnection.ui.components.CircularAvatarComposable
 import com.appxstudios.festivalconnection.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun ChannelChatScreen(
@@ -39,33 +40,41 @@ fun ChannelChatScreen(
     val messages = remember { mutableStateListOf<ChannelMessage>() }
     val relayCount by NostrRelayManager.connectedRelayCount.collectAsState()
     val myKey = remember { NostrIdentity.publicKeyHex }
+    val scope = rememberCoroutineScope()
 
     // Subscribe to this channel's NIP-28 kind-42 messages and stream them in.
-    LaunchedEffect(channelId) {
-        NostrRelayManager.subscribe(NostrChannels.channelMessageFilter(channelId))
+    // DisposableEffect so we tear down the relay subscription and the collector job
+    // when leaving the screen — otherwise each entry leaks a subscription handle.
+    DisposableEffect(channelId) {
+        val subId = NostrRelayManager.subscribe(NostrChannels.channelMessageFilter(channelId))
+        val collectorJob = scope.launch {
+            NostrEventDispatcher.events.collect { event ->
+                if (event.kind != 42) return@collect
+                // Only include messages whose e-tag root points at this channel
+                val hasChannelRoot = event.tags.any { tag ->
+                    tag.size >= 2 && tag[0] == "e" && tag[1] == channelId
+                }
+                if (!hasChannelRoot) return@collect
+                if (event.pubkey == myKey) return@collect  // skip our own echo
 
-        NostrEventDispatcher.events.collect { event ->
-            if (event.kind != 42) return@collect
-            // Only include messages whose e-tag root points at this channel
-            val hasChannelRoot = event.tags.any { tag ->
-                tag.size >= 2 && tag[0] == "e" && tag[1] == channelId
-            }
-            if (!hasChannelRoot) return@collect
-            if (event.pubkey == myKey) return@collect  // skip our own echo
+                // Avoid duplicates if the relay resends
+                if (messages.any { it.id == event.id }) return@collect
 
-            // Avoid duplicates if the relay resends
-            if (messages.any { it.id == event.id }) return@collect
-
-            messages.add(
-                ChannelMessage(
-                    id = event.id,
-                    channelId = channelId,
-                    senderPublicKeyHex = event.pubkey,
-                    senderDisplayName = event.pubkey.take(8),
-                    content = event.content,
-                    timestamp = event.createdAt * 1000
+                messages.add(
+                    ChannelMessage(
+                        id = event.id,
+                        channelId = channelId,
+                        senderPublicKeyHex = event.pubkey,
+                        senderDisplayName = event.pubkey.take(8),
+                        content = event.content,
+                        timestamp = event.createdAt * 1000
+                    )
                 )
-            )
+            }
+        }
+        onDispose {
+            collectorJob.cancel()
+            NostrRelayManager.unsubscribe(subId)
         }
     }
 

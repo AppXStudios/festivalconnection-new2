@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -33,11 +34,20 @@ import com.appxstudios.festivalconnection.ui.screens.*
 import com.appxstudios.festivalconnection.ui.theme.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private var bleService: BLEMeshService? = null
+
+    // Activity Result launcher for runtime permissions. Must be registered as a property
+    // so it is created before the activity reaches the CREATED state.
+    private val permLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        PermissionsManager.getInstance().onPermissionsResult(result)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,9 +60,17 @@ class MainActivity : ComponentActivity() {
 
         // Initialize backends
         PermissionsManager.initialize(this)
-        NostrRelayManager.connect()
-        // Install central dispatcher so multiple screens can observe incoming events
+        // Wire the activity-scoped permission launcher so any screen can request permissions.
+        PermissionsManager.getInstance().registerLauncher(permLauncher)
+        // Refresh permission state on launch so PermissionsScreen reflects current grants.
+        PermissionsManager.getInstance().refreshAll()
+
+        // Install central dispatcher BEFORE connecting so events arriving on the very
+        // first relay frame are routed via NostrEventDispatcher. The default
+        // NostrRelayManager.onEvent is null and would silently drop events that race
+        // ahead of the install() call.
         NostrEventDispatcher.install()
+        NostrRelayManager.connect()
         WalletManager.connect(this)
 
         // Instantiate BLE mesh transport (CrowdSync BLE layer)
@@ -114,7 +132,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             FestivalConnectionTheme {
-                MainTabsScreen()
+                AppRoot()
             }
         }
     }
@@ -122,6 +140,57 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         bleService?.stop()
         super.onDestroy()
+    }
+}
+
+/**
+ * Onboarding-aware root composable that mirrors the iOS RootView flow:
+ *  1. Show LaunchScreen for ~2 seconds
+ *  2. If identity is not yet initialized, show SettingUpScreen
+ *  3. If onboarding is not complete, show PermissionsScreen
+ *  4. Else show MainTabsScreen
+ */
+@Composable
+fun AppRoot() {
+    val context = LocalContext.current
+    val prefs = remember {
+        context.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE)
+    }
+    var showLaunch by remember { mutableStateOf(true) }
+    var onboardingComplete by remember {
+        mutableStateOf(prefs.getBoolean("fc_onboarding_complete", false))
+    }
+    // Track identity readiness reactively. NostrIdentity.initialize / IdentityManager.initialize
+    // run synchronously in MainActivity.onCreate, so on first composition both are usually true.
+    // We still poll briefly during the launch screen to cover any reinitialization edge cases.
+    var identityReady by remember {
+        mutableStateOf(NostrIdentity.isInitialized && IdentityManager.isInitialized)
+    }
+
+    LaunchedEffect(Unit) {
+        // Hold the launch screen for ~2 seconds, matching iOS.
+        delay(2000)
+        identityReady = NostrIdentity.isInitialized && IdentityManager.isInitialized
+        showLaunch = false
+    }
+
+    when {
+        showLaunch -> LaunchScreen()
+
+        !identityReady -> {
+            SettingUpScreen(onInitialized = {
+                identityReady = NostrIdentity.isInitialized && IdentityManager.isInitialized
+            })
+        }
+
+        !onboardingComplete -> {
+            PermissionsScreen(onGetStarted = {
+                prefs.edit().putBoolean("fc_onboarding_complete", true).apply()
+                onboardingComplete = true
+            })
+        }
+
+        else -> MainTabsScreen()
     }
 }
 

@@ -40,6 +40,19 @@ struct RootView: View {
     // MARK: - CrowdSync™ Transport Startup
 
     private func startCrowdSyncTransports() {
+        // Ensure both identities are initialized before any transport setup runs.
+        // On relaunch with onboardingComplete=true, SettingUpView is skipped, so
+        // publicKeyHex would otherwise be empty. Both initialize methods are idempotent.
+        Task {
+            await identityManager.initialize()
+            NostrIdentity.shared.initialize()
+            await MainActor.run {
+                startTransportsAfterIdentity()
+            }
+        }
+    }
+
+    private func startTransportsAfterIdentity() {
         // 1. Nostr relay transport
         NostrRelayManager.shared.connect()
         appState.startNostrRelay()
@@ -124,18 +137,33 @@ struct RootView: View {
         }
         PacketProcessor.shared.onPaymentRequest = { senderHex, amount, invoice, description in
             Task { @MainActor in
-                var msg = ChatMessage(senderKey: senderHex, recipientKey: "", content: "", isIncoming: true, messageType: 0x10)
+                var msg = ChatMessage(senderKey: senderHex, recipientKey: "", content: "", isIncoming: true, messageType: 0x30)
                 msg.paymentAmount = amount
                 msg.paymentInvoice = invoice
                 msg.paymentDescription = description
                 appState.addMessage(msg, forPeer: senderHex)
             }
         }
-        PacketProcessor.shared.onPaymentNotification = { _, _, _ in
+        PacketProcessor.shared.onPaymentNotification = { hash, amount, direction in
             Task { @MainActor in
                 // Refresh wallet balance on incoming payment notification
                 WalletManager.shared.refreshBalance()
                 WalletManager.shared.refreshTransactions()
+                // Add UI bubble per audit M5 — surface incoming payment as a chat notification.
+                // We don't always know the peer key in the mesh case, so route by hash if possible;
+                // fallback: append to the most recently active conversation.
+                let senderHex = hash.prefix(8).map { String(format: "%02x", $0) }.joined()
+                var msg = ChatMessage(
+                    senderKey: senderHex,
+                    recipientKey: NostrIdentity.shared.publicKeyHex,
+                    content: "",
+                    isIncoming: direction == 0,
+                    messageType: 0x31
+                )
+                msg.paymentAmount = amount
+                msg.paymentHash = hash
+                msg.paymentDirection = direction
+                appState.addMessage(msg, forPeer: senderHex)
             }
         }
     }

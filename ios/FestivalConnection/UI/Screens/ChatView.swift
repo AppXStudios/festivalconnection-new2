@@ -128,10 +128,10 @@ struct ChatView: View {
 
     @ViewBuilder
     private func messageBubble(_ msg: ChatMessage) -> some View {
-        if msg.messageType == 0xF0 {
+        if msg.messageType == 0x30 {
             // Payment request bubble
             paymentRequestBubble(msg)
-        } else if msg.messageType == 0xF1 {
+        } else if msg.messageType == 0x31 {
             // Payment notification
             paymentNotificationBubble(msg)
         } else if msg.isIncoming {
@@ -254,6 +254,7 @@ struct PaymentRequestSheet: View {
     @State private var amount = ""
     @State private var description = ""
     @State private var isLoading = false
+    @State private var errorMessage: String?
 
     var displayAmount: String {
         guard let val = Double(amount) else { return "$0.00" }
@@ -283,24 +284,17 @@ struct PaymentRequestSheet: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .padding(.horizontal, 24)
 
+                    if let errorMessage = errorMessage {
+                        Text(errorMessage)
+                            .font(.system(size: 13))
+                            .foregroundColor(FestivalTheme.errorRed)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    }
+
                     NumericKeypad(amount: $amount)
 
-                    Button(action: {
-                        isLoading = true
-                        let amountVal = UInt64(amount) ?? 0
-                        var msg = ChatMessage(
-                            senderKey: IdentityManager.shared.publicKeyHex,
-                            recipientKey: peerKey,
-                            content: "Payment Request",
-                            isIncoming: false,
-                            messageType: 0xF0
-                        )
-                        msg.paymentAmount = amountVal
-                        msg.paymentDescription = description.isEmpty ? nil : description
-                        appState.addMessage(msg, forPeer: peerKey)
-                        isLoading = false
-                        dismiss()
-                    }) {
+                    Button(action: { generateRequest() }) {
                         if isLoading {
                             ProgressView().tint(.white)
                                 .frame(maxWidth: .infinity)
@@ -326,6 +320,79 @@ struct PaymentRequestSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                         .foregroundColor(FestivalTheme.accentPink)
+                }
+            }
+        }
+    }
+
+    private func generateRequest() {
+        let amountVal = UInt64(amount) ?? 0
+        guard amountVal > 0 else { return }
+        let descText = description
+        isLoading = true
+        errorMessage = nil
+
+        Task {
+            do {
+                // 1. Generate a real BOLT11 invoice via Breez SDK
+                let invoice = try await WalletManager.shared.createInvoice(
+                    amountSat: amountVal,
+                    description: descText
+                )
+
+                await MainActor.run {
+                    // 2. Add local UI bubble with the real invoice attached
+                    var msg = ChatMessage(
+                        senderKey: IdentityManager.shared.publicKeyHex,
+                        recipientKey: peerKey,
+                        content: "Payment Request",
+                        isIncoming: false,
+                        messageType: 0x30
+                    )
+                    msg.paymentAmount = amountVal
+                    msg.paymentInvoice = invoice
+                    msg.paymentDescription = descText.isEmpty ? nil : descText
+                    appState.addMessage(msg, forPeer: peerKey)
+
+                    // 3. Send via mesh (BLE + Multipeer)
+                    let recipientHexPrefix = String(peerKey.prefix(16))
+                    var recipientID = Data()
+                    var rIdx = recipientHexPrefix.startIndex
+                    while rIdx < recipientHexPrefix.endIndex {
+                        let next = recipientHexPrefix.index(rIdx, offsetBy: 2, limitedBy: recipientHexPrefix.endIndex) ?? recipientHexPrefix.endIndex
+                        if let byte = UInt8(recipientHexPrefix[rIdx..<next], radix: 16) {
+                            recipientID.append(byte)
+                        }
+                        rIdx = next
+                    }
+                    PacketProcessor.shared.sendPaymentRequest(
+                        invoice: invoice,
+                        amountSat: amountVal,
+                        description: descText,
+                        senderID: IdentityManager.shared.peerID(),
+                        recipientID: recipientID
+                    )
+
+                    // 4. Send via Nostr DM as backup — JSON payload encrypted via NIP-04
+                    let payload: [String: Any] = [
+                        "type": "payment_request",
+                        "invoice": invoice,
+                        "amount": amountVal,
+                        "description": descText
+                    ]
+                    if let jsonData = try? JSONSerialization.data(withJSONObject: payload),
+                       let jsonString = String(data: jsonData, encoding: .utf8),
+                       let dmEvent = NostrDM.createDirectMessage(to: peerKey, content: jsonString) {
+                        NostrRelayManager.shared.publishEvent(dmEvent)
+                    }
+
+                    isLoading = false
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = "Failed to generate invoice: \(error.localizedDescription)"
                 }
             }
         }

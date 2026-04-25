@@ -1,7 +1,5 @@
 package com.appxstudios.festivalconnection.ui.screens
 
-import android.content.Context
-import android.content.SharedPreferences
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.appxstudios.festivalconnection.mesh.nostr.NostrRelayManager
 import com.appxstudios.festivalconnection.services.WalletManager
 import com.appxstudios.festivalconnection.ui.theme.*
+import com.appxstudios.festivalconnection.ui.util.rememberStringPref
 
 @Composable
 fun SettingsScreen(
@@ -35,11 +34,11 @@ fun SettingsScreen(
     onCrowdSync: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences("fc_prefs", Context.MODE_PRIVATE) }
-    val displayName = remember { prefs.getString("fc_nickname", "Festival Goer") ?: "Festival Goer" }
-    val rawHandle = remember { prefs.getString("fc_handle", "") ?: "" }
+    val displayName by rememberStringPref(context, "fc_prefs", "fc_nickname", "Festival Goer")
+    val rawHandle by rememberStringPref(context, "fc_prefs", "fc_handle", "")
     val handle = if (rawHandle.isNotEmpty()) "@$rawHandle" else "@anonymous"
     val relayCount by NostrRelayManager.connectedRelayCount.collectAsState()
+    val balanceUSD by WalletManager.balanceUSD.collectAsState()
     var searchText by remember { mutableStateOf("") }
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showSecurityDialog by remember { mutableStateOf(false) }
@@ -146,7 +145,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .background(SurfaceDark, RoundedCornerShape(16.dp))
             ) {
-                SettingsRow(icon = Icons.Filled.AccountBalanceWallet, label = "Wallet", detail = String.format("$%.2f", WalletManager.balanceUSD.value), onClick = onWallet)
+                SettingsRow(icon = Icons.Filled.AccountBalanceWallet, label = "Wallet", detail = String.format("$%.2f", balanceUSD), onClick = onWallet)
                 HorizontalDivider(color = SurfaceMedium)
                 SettingsRow(icon = Icons.Filled.Language, label = "Nostr Relays", detail = "$relayCount connected")
                 HorizontalDivider(color = SurfaceMedium)
